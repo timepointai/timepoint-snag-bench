@@ -2,7 +2,7 @@
 
 **Orchestrator that makes Flash + Daedalus (Pro) + Proteus one closed temporal reasoning loop.**
 
-SNAG Bench is an open scoring standard for temporal reasoning in LLMs. It produces `(model, task, score)` triples across four axes, saved as JSONL for reproducibility and leaderboard aggregation.
+SNAG Bench is an open scoring standard for temporal reasoning in LLMs. It produces `(model, task, score)` eval results across four axes, saved as JSONL for reproducibility and leaderboard aggregation.
 
 ## Scoring Axes
 
@@ -55,9 +55,9 @@ The runner script handles the full lifecycle:
 ./run.sh help
 ```
 
-## Triple Format
+## Result Format
 
-Each evaluation produces JSONL triples in `results/`:
+Each evaluation produces JSONL results in `results/`:
 
 ```json
 {
@@ -79,10 +79,10 @@ Each evaluation produces JSONL triples in `results/`:
 snag_bench/
   __init__.py       # Package init
   cli.py            # Click CLI (snag-bench evaluate)
-  schema.py         # Triple + Axis Pydantic models
+  schema.py         # EvalResult + Axis Pydantic models
   evaluator.py      # SNAGEvaluator (Axis 1 + Axis 2 runners)
 run.sh              # Shell runner with env detection
-results/            # JSONL triple output files
+results/            # JSONL eval result files
 BACKGROUND.md       # Upstream repo analysis
 CHANGELOG.md        # Version history
 ```

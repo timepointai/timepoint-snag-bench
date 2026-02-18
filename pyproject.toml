@@ -22,7 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 full = [
     "timepoint-flash @ git+https://github.com/timepoint-ai/timepoint-flash.git",
-    "timepoint-daedalus @ git+https://github.com/timepoint-ai/timepoint-daedalus.git",
+    "timepoint-pro @ git+https://github.com/timepoint-ai/timepoint-pro.git",
     "timepoint-proteus @ git+https://github.com/timepoint-ai/proteus.git"
 ]
 

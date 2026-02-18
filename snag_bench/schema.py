@@ -9,7 +9,7 @@ class Axis(str, Enum):
     PREDICTIVE = "predictive"
     HUMAN = "human"
 
-class Triple(BaseModel):
+class EvalResult(BaseModel):
     model: str
     task: str
     score: float = Field(..., ge=0.0, le=1.0)

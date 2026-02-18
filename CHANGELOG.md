@@ -2,16 +2,16 @@
 
 ## v0.1.0 — 2026-02-18
 
-First working version. Both Axis 1 and Axis 2 produce real triples.
+First working version. Both Axis 1 and Axis 2 produce real eval results.
 
 ### Added
 
-- **Triple schema** (`snag_bench/schema.py`) — Pydantic model for `(model, task, score)` triples with axis enum, sha256 run hash, evidence dict, and JSONL serialization.
+- **EvalResult schema** (`snag_bench/schema.py`) — Pydantic model for `(model, task, score)` eval results with axis enum, sha256 run hash, evidence dict, and JSONL serialization.
 - **CLI** (`snag_bench/cli.py`) — `snag-bench evaluate --model MODEL --full-stack --preset PRESET --dry-run` via Click.
 - **SNAGEvaluator** (`snag_bench/evaluator.py`) — Full-stack evaluator running Axis 1 (Flash) and Axis 2 (Pro/Daedalus).
 - **run.sh** — Shell runner that detects sibling repos (`../timepoint-flash/`, `../timepoint-pro/`), borrows their `.env` credentials, starts Flash server if needed, runs eval, and cleans up on exit.
 - **BACKGROUND.md** — Reference document analyzing the three upstream repos and their SNAG Bench roles.
-- **results/** — 8 JSONL triple files from development runs.
+- **results/** — 8 JSONL result files from development runs.
 
 ### Axis 1: Grounding Fidelity (GSR)
 
@@ -34,7 +34,7 @@ First working version. Both Axis 1 and Axis 2 produce real triples.
 ### Fixed
 
 - Missing `snag_bench/__init__.py` — setuptools couldn't find the package without it (when `namespaces = false`).
-- `run_hash` validation — fallback triples used `run_hash="demo"` (4 chars) but schema requires exactly 64 chars (sha256). Fixed to compute real hashes.
+- `run_hash` validation — fallback results used `run_hash="demo"` (4 chars) but schema requires exactly 64 chars (sha256). Fixed to compute real hashes.
 - `evaluate_full_stack` missing `dry_run` parameter — CLI passed it but the method didn't accept it.
 - Flash timeout — bumped from 120s to 300s to handle slower presets.
 - Flash database migrations — manually patched SQLite schema for migrations 0006-0009 that failed due to SQLite FK constraint limitations.

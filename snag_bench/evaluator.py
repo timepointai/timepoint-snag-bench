@@ -9,7 +9,7 @@ from typing import Dict, Any
 import httpx
 from rich.console import Console
 
-from .schema import Triple, Axis
+from .schema import EvalResult, Axis
 
 console = Console()
 
@@ -30,7 +30,7 @@ class SNAGEvaluator:
             console.print("[yellow]DRY RUN — would run Axis 1 (Flash) + Axis 2 (Daedalus)[/]")
             return []
 
-        triples = []
+        results = []
 
         # === AXIS 1: Flash (health check + longer timeout) ===
         try:
@@ -48,7 +48,7 @@ class SNAGEvaluator:
             resp.raise_for_status()
             data = resp.json()
             gsr = data.get("grounding_survival_rate", data.get("gsr", 0.88))
-            triples.append(Triple(
+            results.append(EvalResult(
                 model=model,
                 task="flash-grounding/alphago-move37",
                 score=gsr,
@@ -59,7 +59,7 @@ class SNAGEvaluator:
             console.print(f"[green]Axis 1 GSR: {gsr:.3f}[/]")
         except Exception as e:
             console.print(f"[red]Flash failed: {e}[/]")
-            triples.append(Triple(
+            results.append(EvalResult(
                 model=model,
                 task="flash-grounding/demo",
                 score=0.8,
@@ -88,7 +88,7 @@ class SNAGEvaluator:
                 )
                 if result.returncode == 0:
                     tcs = 0.91
-                    triples.append(Triple(
+                    results.append(EvalResult(
                         model=model,
                         task="daedalus-coherence/board_meeting",
                         score=tcs,
@@ -102,11 +102,11 @@ class SNAGEvaluator:
             except Exception as e:
                 console.print(f"[red]Daedalus failed: {e}[/]")
 
-        # Save triples
-        out_file = self.results_dir / f"triples_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.jsonl"
+        # Save results
+        out_file = self.results_dir / f"eval_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.jsonl"
         with out_file.open("w") as f:
-            for t in triples:
-                f.write(t.model_dump_json() + "\n")
+            for r in results:
+                f.write(r.model_dump_json() + "\n")
 
-        console.print(f"[bold green]Full stack done -> {len(triples)} triples saved to {out_file}[/]")
-        return triples
+        console.print(f"[bold green]Full stack done -> {len(results)} results saved to {out_file}[/]")
+        return results

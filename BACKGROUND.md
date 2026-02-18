@@ -231,7 +231,7 @@ SNAG Bench
 
 ### Needs Building (in this repo: timepoint-snag-bench)
 
-- Triple schema and JSONL submission format
+- EvalResult schema and JSONL submission format
 - Scoring wrappers that call into upstream repos
 - Composite score aggregation with configurable weights
 - 60 Flash benchmark queries (Axis 1 task set)

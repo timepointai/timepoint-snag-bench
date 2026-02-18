@@ -1,0 +1,1 @@
+{"model":"gemini-2.0-flash","task":"flash-grounding/alphago-move37","score":0.88,"axis":"grounding","timestamp":"2026-02-18T16:14:58.950371","submitter":"realityinspector","version":"0.1.0","evidence":{"preset":"balanced","scene_id":"b25f930e-f1ad-44dd-badb-4aecbf4e9277"},"run_hash":"d6a1ddfbd3dbc03fc84cdde18fd1267bd89bf3bf3be6ae7cdccadc738baed01d"}

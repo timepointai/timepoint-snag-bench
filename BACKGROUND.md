@@ -4,7 +4,7 @@ Reference document summarizing the three upstream repos that SNAG Bench scores a
 
 ---
 
-## 1. Timepoint Daedalus (Temporal Simulation Engine)
+## 1. Timepoint Pro (Temporal Simulation Engine, formerly Daedalus)
 
 ### What It Is
 
@@ -202,9 +202,9 @@ SNAG Bench
 │
 ├── Axis 2: Temporal Coherence (TCS)
 │   └── Runs Daedalus templates N times, measures convergence
-│       └── timepoint-daedalus/validation/convergence.py
-│       └── timepoint-daedalus/evaluation/
-│       └── timepoint-daedalus/workflows/dialog_synthesis.py (quality gates)
+│       └── timepoint-pro/validation/convergence.py
+│       └── timepoint-pro/evaluation/
+│       └── timepoint-pro/workflows/dialog_synthesis.py (quality gates)
 │
 ├── Axis 3: Predictive Precision (WMNED)
 │   └── Reads from Proteus on-chain markets

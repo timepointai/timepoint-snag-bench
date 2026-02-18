@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FLASH_DIR="$SCRIPT_DIR/../timepoint-flash"
-DAEDALUS_DIR="$SCRIPT_DIR/../timepoint-daedalus"
+DAEDALUS_DIR="$SCRIPT_DIR/../timepoint-pro"
 FLASH_PORT=8000
 FLASH_PID=""
 
@@ -93,9 +93,9 @@ check_env() {
 
     # 4. Daedalus repo
     if [ -d "$DAEDALUS_DIR" ]; then
-        echo -e "  timepoint-daedalus ${GREEN}found${NC}  $DAEDALUS_DIR"
+        echo -e "  timepoint-pro ${GREEN}found${NC}  $DAEDALUS_DIR"
     else
-        echo -e "  timepoint-daedalus ${YELLOW}missing${NC}  (Axis 2 will be skipped)"
+        echo -e "  timepoint-pro ${YELLOW}missing${NC}  (Axis 2 will be skipped)"
     fi
 
     # 5. Daedalus .env

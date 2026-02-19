@@ -2,9 +2,11 @@ import hashlib
 import json
 import os
 import subprocess
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import httpx
 from dotenv import dotenv_values
@@ -14,12 +16,119 @@ from .schema import EvalResult, Axis
 
 console = Console()
 
+# Progress signals from Pro that indicate the run is alive and working
+PROGRESS_SIGNALS = [
+    "Dialog quality", "Voice distinctiveness", "Mechanisms Used",
+    "Entities Created", "Timepoints Created", "Cost:", "Convergence Score",
+    "Running template", "Step", "Generating", "Processing", "Loading",
+    "Creating", "Simulating", "Portal", "Backward", "Forward",
+    "LLM call", "API call", "Token", "Run ", "Template:",
+]
+
+
 class SNAGEvaluator:
     def __init__(self):
         self.results_dir = Path("results")
         self.results_dir.mkdir(exist_ok=True)
         self.training_dir = Path("training_data")
         self.training_dir.mkdir(exist_ok=True)
+
+    def _run_pro_adaptive(
+        self,
+        cmd: list,
+        cwd: Path,
+        env: dict,
+        stale_timeout: int = 300,
+        max_timeout: int = 60000,
+    ) -> subprocess.CompletedProcess:
+        """Run Pro subprocess with adaptive timeout based on output activity.
+
+        Instead of a rigid timeout, this keeps the process alive as long as
+        it's producing output. Kills only when:
+        - No stdout/stderr for `stale_timeout` seconds (default 5 min)
+        - Absolute wall clock exceeds `max_timeout` (default ~16 hours)
+        """
+        proc = subprocess.Popen(
+            cmd, cwd=cwd, env=env,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+
+        stdout_lines = []
+        stderr_lines = []
+        lock = threading.Lock()
+        last_activity = time.monotonic()
+        line_count = 0
+
+        def _read_stdout():
+            nonlocal last_activity, line_count
+            for line in proc.stdout:
+                with lock:
+                    stdout_lines.append(line)
+                    last_activity = time.monotonic()
+                    line_count += 1
+                # Log progress signals to console in real time
+                stripped = line.strip()
+                if stripped and any(sig in stripped for sig in PROGRESS_SIGNALS):
+                    console.print(f"  [dim]Pro: {stripped[:120]}[/]")
+
+        def _read_stderr():
+            nonlocal last_activity
+            for line in proc.stderr:
+                with lock:
+                    stderr_lines.append(line)
+                    last_activity = time.monotonic()
+
+        t_out = threading.Thread(target=_read_stdout, daemon=True)
+        t_err = threading.Thread(target=_read_stderr, daemon=True)
+        t_out.start()
+        t_err.start()
+
+        start = time.monotonic()
+        last_status = start
+        status_interval = 60  # print a heartbeat every 60s
+
+        while proc.poll() is None:
+            now = time.monotonic()
+            elapsed = now - start
+
+            with lock:
+                idle = now - last_activity
+                lines_so_far = line_count
+
+            # Absolute safety valve
+            if elapsed > max_timeout:
+                console.print(f"[red]Pro hit absolute max timeout ({max_timeout}s / {max_timeout/60:.0f}min)[/]")
+                proc.kill()
+                proc.wait(timeout=10)
+                break
+
+            # Stale detection — no output for too long
+            if idle > stale_timeout:
+                console.print(f"[yellow]Pro stale — no output for {idle:.0f}s (threshold {stale_timeout}s), killing[/]")
+                proc.kill()
+                proc.wait(timeout=10)
+                break
+
+            # Periodic heartbeat so user knows it's still going
+            if now - last_status > status_interval:
+                console.print(
+                    f"  [dim]... Pro running {elapsed:.0f}s, "
+                    f"{lines_so_far} lines, "
+                    f"last output {idle:.0f}s ago[/]"
+                )
+                last_status = now
+
+            time.sleep(2)
+
+        t_out.join(timeout=5)
+        t_err.join(timeout=5)
+
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=proc.returncode,
+            stdout="".join(stdout_lines),
+            stderr="".join(stderr_lines),
+        )
 
     def _parse_tcs(self, stdout: str) -> tuple[float, dict]:
         """Parse Pro stdout for coherence signals. Returns (score, evidence_dict).
@@ -143,8 +252,8 @@ class SNAGEvaluator:
             console.print(f"[yellow]timepoint-pro not found at {pro_path} — skipping Axis 2[/]")
         else:
             try:
-                template = "convergence_simple"
-                console.print(f"[cyan]Axis 2: running Pro {template} (--skip-summaries)...[/]")
+                template = "mars_mission_portal"
+                console.print(f"[cyan]Axis 2: running Pro {template} (adaptive timeout)...[/]")
                 # Load Pro's .env so OPENROUTER_API_KEY is available
                 pro_env = {**os.environ}
                 pro_dotenv = pro_path / ".env"
@@ -152,19 +261,35 @@ class SNAGEvaluator:
                     for k, v in dotenv_values(pro_dotenv).items():
                         if v and k not in pro_env:
                             pro_env[k] = v
-                pro_cmd = ["./run.sh", "run", template, "--skip-summaries"]
+                # Set Pro env vars for flagship template
+                pro_env["RUNS"] = "3"
+                pro_env["MODE"] = "PORTAL"
+                pro_cmd = ["./run.sh", "run", template]
                 if pro_model:
                     pro_cmd.extend(["--model", pro_model])
-                result = subprocess.run(
-                    pro_cmd,
-                    cwd=pro_path,
-                    env=pro_env,
-                    capture_output=True,
-                    text=True,
-                    timeout=1200,  # 20 minutes (quick tier but LLM calls vary)
+
+                result = self._run_pro_adaptive(
+                    pro_cmd, cwd=pro_path, env=pro_env,
+                    stale_timeout=300,   # kill after 5 min silence
+                    max_timeout=60000,   # absolute cap ~16 hours
                 )
-                if result.returncode == 0:
-                    tcs, tcs_evidence = self._parse_tcs(result.stdout)
+
+                # Parse TCS from stdout regardless of exit code — Pro may
+                # crash in a late stage (e.g. LangGraph recursion limit)
+                # after producing all the quality data we need.
+                tcs, tcs_evidence = self._parse_tcs(result.stdout)
+                has_quality_data = bool(
+                    tcs_evidence.get("dialog_quality_scores")
+                    or tcs_evidence.get("convergence_score")
+                )
+
+                if result.returncode != 0:
+                    console.print(f"[yellow]Pro exited with code {result.returncode}[/]")
+                    if result.stderr:
+                        console.print(f"[yellow]Pro stderr (tail): {result.stderr[-300:]}[/]")
+
+                if has_quality_data:
+                    tcs_evidence["exit_code"] = result.returncode
                     results.append(EvalResult(
                         model=model,
                         task=f"pro-coherence/{template}",
@@ -173,10 +298,13 @@ class SNAGEvaluator:
                         evidence={"template": template, **tcs_evidence},
                         run_hash=self._compute_run_hash({"stdout": result.stdout[-500:]}),
                     ))
-                    console.print(f"[green]Axis 2 TCS: {tcs:.3f}[/]")
-                else:
-                    console.print(f"[yellow]Pro stderr: {result.stderr[-300:]}[/]")
-                    console.print(f"[yellow]Pro stdout (tail): {result.stdout[-300:]}[/]")
+                    status = "green" if result.returncode == 0 else "yellow"
+                    label = "TCS" if result.returncode == 0 else "TCS (partial — crashed after scoring)"
+                    console.print(f"[{status}]Axis 2 {label}: {tcs:.3f}[/]")
+                elif result.returncode != 0:
+                    console.print(f"[red]Pro failed with no usable quality data[/]")
+                    if result.stdout:
+                        console.print(f"[yellow]Pro stdout (tail): {result.stdout[-300:]}[/]")
             except Exception as e:
                 console.print(f"[red]Pro failed: {e}[/]")
 

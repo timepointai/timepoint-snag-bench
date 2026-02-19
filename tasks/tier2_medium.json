@@ -1,0 +1,28 @@
+{
+  "tier": 2,
+  "label": "medium",
+  "description": "Historically significant events with moderate documentation — requires deeper knowledge and temporal precision",
+  "weight": 1.5,
+  "tasks": [
+    {"id": "t2_001", "query": "Treaty of Westphalia ends the Thirty Years War October 24 1648", "difficulty": 0.40, "category": "politics", "notes": "Important but requires European history knowledge"},
+    {"id": "t2_002", "query": "Krakatoa volcanic eruption destroys most of the island August 27 1883", "difficulty": 0.42, "category": "disaster", "notes": "Well-recorded but 19th century documentation"},
+    {"id": "t2_003", "query": "Tunguska event flattens 2150 square kilometers of Siberian forest June 30 1908", "difficulty": 0.48, "category": "science", "notes": "Remote location, sparse initial documentation"},
+    {"id": "t2_004", "query": "French soldiers discover the Rosetta Stone at Fort Julien in Egypt July 15 1799", "difficulty": 0.45, "category": "archaeology", "notes": "Specific date less commonly known"},
+    {"id": "t2_005", "query": "Alan Turing publishes On Computable Numbers introducing the Turing machine 1936", "difficulty": 0.50, "category": "science", "notes": "Publication date known, exact month less common"},
+    {"id": "t2_006", "query": "Joseph Murray performs first successful human kidney transplant in Boston December 23 1954", "difficulty": 0.52, "category": "medicine", "notes": "Medical milestone, requires specific knowledge"},
+    {"id": "t2_007", "query": "Stonewall riots begin at the Stonewall Inn Greenwich Village June 28 1969", "difficulty": 0.45, "category": "civil_rights", "notes": "Important but exact date less universally known"},
+    {"id": "t2_008", "query": "Voyager 1 captures the Pale Blue Dot photograph from 6 billion kilometers February 14 1990", "difficulty": 0.48, "category": "space", "notes": "Specific date of photograph acquisition"},
+    {"id": "t2_009", "query": "ENIAC the first general-purpose electronic computer is unveiled at UPenn February 14 1946", "difficulty": 0.52, "category": "technology", "notes": "Computing history, specific date less common"},
+    {"id": "t2_010", "query": "Grigori Perelman publishes proof of the Poincare conjecture on arXiv November 2002", "difficulty": 0.55, "category": "science", "notes": "Math history, month approximate"},
+    {"id": "t2_011", "query": "The Antonine Plague begins devastating the Roman Empire in 165 AD", "difficulty": 0.58, "category": "health", "notes": "Ancient event, year approximate"},
+    {"id": "t2_012", "query": "Battle of Thermopylae between Greek forces and Persian Empire August 480 BC", "difficulty": 0.55, "category": "military", "notes": "Ancient battle, month is approximate"},
+    {"id": "t2_013", "query": "Zheng He departs Nanjing on first maritime expedition with 317 ships in 1405", "difficulty": 0.60, "category": "exploration", "notes": "Non-Western history, exact date uncertain"},
+    {"id": "t2_014", "query": "Johannes Gutenberg prints the first Bible using movable type in Mainz circa 1455", "difficulty": 0.55, "category": "technology", "notes": "Exact year debated within a small range"},
+    {"id": "t2_015", "query": "Edward Jenner vaccinates James Phipps against smallpox May 14 1796", "difficulty": 0.50, "category": "medicine", "notes": "Medical milestone, specific date in historical record"},
+    {"id": "t2_016", "query": "Nikola Tesla demonstrates wireless energy transmission at Colorado Springs laboratory 1899", "difficulty": 0.58, "category": "technology", "notes": "Year known, specific date contested"},
+    {"id": "t2_017", "query": "First transatlantic telegraph cable completed between Ireland and Newfoundland August 5 1858", "difficulty": 0.52, "category": "technology", "notes": "Specific date, but cable failed after 3 weeks"},
+    {"id": "t2_018", "query": "Scientists demonstrate CRISPR-Cas9 gene editing in human cells for the first time February 2013", "difficulty": 0.48, "category": "science", "notes": "Recent but specific publication timing"},
+    {"id": "t2_019", "query": "Great Fire of London destroys 13200 houses over four days beginning September 2 1666", "difficulty": 0.45, "category": "disaster", "notes": "Well-documented but 17th century event"},
+    {"id": "t2_020", "query": "Galileo Galilei first observes four moons of Jupiter through telescope January 7 1610", "difficulty": 0.55, "category": "science", "notes": "Date from Galileo's own records, Julian calendar"}
+  ]
+}

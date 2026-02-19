@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "created": "2026-02-19",
+  "description": "SNAG Bench v1.0 fixed task set — 60 temporal reasoning queries across 3 difficulty tiers",
+  "tiers": {
+    "1": {"label": "easy", "count": 20, "difficulty_range": [0.10, 0.30], "weight": 1.0},
+    "2": {"label": "medium", "count": 20, "difficulty_range": [0.40, 0.65], "weight": 1.5},
+    "3": {"label": "hard", "count": 20, "difficulty_range": [0.70, 1.00], "weight": 2.5}
+  },
+  "calibration_targets": {
+    "2026_frontier_composite": [0.65, 0.80],
+    "2028_frontier_composite": [0.78, 0.88],
+    "2030_frontier_composite": [0.85, 0.95],
+    "saturation_floor": 0.97
+  },
+  "axes": {
+    "GSR": {"weight": 0.25, "source": "flash_grounding"},
+    "TCS": {"weight": 0.30, "source": "pro_coherence"},
+    "WMNED": {"weight": 0.25, "source": "predictive_stub"},
+    "HTP": {"weight": 0.20, "source": "llm_as_human"}
+  },
+  "sha256": null,
+  "note": "Task content is frozen at this version. Do not modify tasks — create a new version instead."
+}

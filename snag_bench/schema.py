@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Dict, Any
+from typing import Literal, Dict, Any, Optional
 
 class Axis(str, Enum):
     GROUNDING = "grounding"
@@ -16,9 +16,12 @@ class EvalResult(BaseModel):
     axis: Axis
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     submitter: str = "realityinspector"
-    version: str = "0.1.0"
+    version: str = "1.0.0"
     evidence: Dict[str, Any] = Field(default_factory=dict)
     run_hash: str = Field(..., min_length=64, max_length=64)  # sha256
+    task_id: Optional[str] = None
+    tier: Optional[int] = None
+    internal: bool = False  # True = Timepoint self-validation, excluded from public leaderboard
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}

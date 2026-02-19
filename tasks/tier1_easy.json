@@ -1,0 +1,28 @@
+{
+  "tier": 1,
+  "label": "easy",
+  "description": "Well-documented historical events with unambiguous dates and extensive primary sources",
+  "weight": 1.0,
+  "tasks": [
+    {"id": "t1_001", "query": "Apollo 11 Moon landing July 20 1969", "difficulty": 0.10, "category": "space", "notes": "Extremely well-documented, global television coverage"},
+    {"id": "t1_002", "query": "Fall of the Berlin Wall November 9 1989", "difficulty": 0.12, "category": "politics", "notes": "Iconic cold war event, extensive media coverage"},
+    {"id": "t1_003", "query": "September 11 attacks on the World Trade Center 2001", "difficulty": 0.10, "category": "conflict", "notes": "Defining 21st century event, massive documentation"},
+    {"id": "t1_004", "query": "D-Day Allied invasion of Normandy June 6 1944", "difficulty": 0.15, "category": "military", "notes": "Most documented military operation in history"},
+    {"id": "t1_005", "query": "Assassination of President John F Kennedy in Dallas November 22 1963", "difficulty": 0.15, "category": "politics", "notes": "Zapruder film, Warren Commission, exhaustive records"},
+    {"id": "t1_006", "query": "Steve Jobs unveils the first iPhone at Macworld January 9 2007", "difficulty": 0.12, "category": "technology", "notes": "Widely covered tech keynote, video preserved"},
+    {"id": "t1_007", "query": "Barack Obama inaugurated as 44th President of the United States January 20 2009", "difficulty": 0.10, "category": "politics", "notes": "First Black US president, massive global coverage"},
+    {"id": "t1_008", "query": "Nelson Mandela released from Victor Verster Prison February 11 1990", "difficulty": 0.18, "category": "politics", "notes": "Global live broadcast, well-documented"},
+    {"id": "t1_009", "query": "Signing of the United States Declaration of Independence July 4 1776", "difficulty": 0.20, "category": "politics", "notes": "Founding document, date is approximate but canonical"},
+    {"id": "t1_010", "query": "RMS Titanic sinks in the North Atlantic after striking an iceberg April 15 1912", "difficulty": 0.15, "category": "disaster", "notes": "Extensively documented maritime disaster"},
+    {"id": "t1_011", "query": "Wright Brothers achieve first powered heavier-than-air flight at Kitty Hawk December 17 1903", "difficulty": 0.18, "category": "technology", "notes": "Photographs and firsthand accounts survive"},
+    {"id": "t1_012", "query": "Atomic bombing of Hiroshima by the United States August 6 1945", "difficulty": 0.12, "category": "military", "notes": "Precise military records, survivor testimonies"},
+    {"id": "t1_013", "query": "Chernobyl nuclear reactor number four explodes April 26 1986", "difficulty": 0.15, "category": "disaster", "notes": "Extensively studied nuclear accident"},
+    {"id": "t1_014", "query": "Martin Luther King Jr delivers I Have a Dream speech at the March on Washington August 28 1963", "difficulty": 0.12, "category": "civil_rights", "notes": "Full audio and video recording preserved"},
+    {"id": "t1_015", "query": "Tim Berners-Lee proposes the World Wide Web at CERN March 1989", "difficulty": 0.22, "category": "technology", "notes": "Original proposal document preserved, month approximate"},
+    {"id": "t1_016", "query": "WHO declares COVID-19 a global pandemic March 11 2020", "difficulty": 0.10, "category": "health", "notes": "Recent event, extensively documented"},
+    {"id": "t1_017", "query": "Soviet Union launches Sputnik 1 the first artificial satellite October 4 1957", "difficulty": 0.18, "category": "space", "notes": "Triggered the space race, well-documented"},
+    {"id": "t1_018", "query": "Princess Diana dies in a car crash in Paris August 31 1997", "difficulty": 0.12, "category": "culture", "notes": "Massive global media coverage"},
+    {"id": "t1_019", "query": "SpaceX launches Falcon Heavy with Tesla Roadster payload February 6 2018", "difficulty": 0.15, "category": "space", "notes": "Live-streamed globally, extensive documentation"},
+    {"id": "t1_020", "query": "DeepMind AlphaGo defeats Lee Sedol in Go with Move 37 March 2016", "difficulty": 0.20, "category": "technology", "notes": "Documented match, specific move widely analyzed"}
+  ]
+}

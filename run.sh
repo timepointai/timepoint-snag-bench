@@ -260,6 +260,17 @@ case "$COMMAND" in
             snag-bench evaluate "$@"
         fi
         ;;
+    run)
+        shift 2>/dev/null || true
+        check_env
+        activate_venv
+        load_flash_env
+        ensure_flash
+        echo ""
+        echo -e "${GREEN}Running SNAG Bench v1.0...${NC}"
+        echo ""
+        snag-bench run "$@"
+        ;;
     leaderboard)
         shift 2>/dev/null || true
         activate_venv

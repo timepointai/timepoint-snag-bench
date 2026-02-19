@@ -1,11 +1,18 @@
-# SNAG Bench Leaderboard
+# SNAG Bench Leaderboard v1.0
 
-Weighted composite: 25% GSR + 30% TCS + 25% WMNED + 20% HTP
-(renormalized over available axes)
+Composite: 25% GSR + 30% TCS + 25% WMNED + 20% HTP (renormalized over available axes)
+
+Axes 1 (GSR) and 4 (HTP) use difficulty-weighted scoring across 60 tasks (Tier 3 = 2.5x weight).
+
+Axis 3 (WMNED) is currently stubbed — scores are placeholders until Proteus goes live.
 
 | Rank | Model | GSR | TCS | WMNED | HTP | Composite |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | gemini-2.0-flash | 1.000 | 0.928 | --- | --- | **0.961** |
+| 1 | gemini-2.0-flash | 0.939 | 0.928 | --- | --- | **0.933** |
 | 2 | claude-3.5-sonnet | 0.800 | --- | --- | --- | **0.800** |
 
-*Generated from 3 result(s) across 2 model(s)*
+*31 result(s) across 2 model(s) — external models only*
+
+*Generated 2026-02-19 18:14 UTC*
+
+See [methodology.md](../methodology.md) for scoring details and calibration targets.

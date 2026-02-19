@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-02-19T18:14:15.154693",
+  "scoring": {
+    "GSR_weight": 0.25,
+    "TCS_weight": 0.3,
+    "WMNED_weight": 0.25,
+    "HTP_weight": 0.2,
+    "difficulty_weighted": true,
+    "WMNED_stubbed": true
+  },
+  "models": [
+    {
+      "rank": 1,
+      "model": "gemini-2.0-flash",
+      "composite": 0.9332,
+      "axes": {
+        "GSR": 0.9393,
+        "TCS": 0.9282
+      }
+    },
+    {
+      "rank": 2,
+      "model": "claude-3.5-sonnet",
+      "composite": 0.8,
+      "axes": {
+        "GSR": 0.8
+      }
+    }
+  ]
+}

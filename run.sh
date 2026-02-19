@@ -33,19 +33,24 @@ usage() {
     echo "Usage: ./run.sh [command] [options]"
     echo ""
     echo "Commands:"
-    echo "  evaluate    Run full-stack evaluation (default)"
-    echo "  check       Check environment only, don't run"
-    echo "  help        Show this help"
+    echo "  evaluate       Run full-stack evaluation (default)"
+    echo "  leaderboard    Generate leaderboard from all results"
+    echo "  check          Check environment only, don't run"
+    echo "  help           Show this help"
     echo ""
     echo "Options (passed through to snag-bench evaluate):"
-    echo "  --model MODEL    Model name (default: gemini-2.0-flash)"
-    echo "  --preset PRESET  Flash preset (default: balanced)"
-    echo "  --full-stack     Run all axes"
-    echo "  --dry-run        Print plan without executing"
+    echo "  --model MODEL        Model name (default: gemini-2.0-flash)"
+    echo "  --preset PRESET      Flash preset (default: balanced)"
+    echo "  --text-model MODEL   Override Flash LLM"
+    echo "  --pro-model MODEL    Override Pro LLM"
+    echo "  --full-stack         Run all axes"
+    echo "  --dry-run            Print plan without executing"
     echo ""
     echo "Examples:"
     echo "  ./run.sh                                          # check + evaluate"
     echo "  ./run.sh evaluate --model gemini-2.0-flash --full-stack"
+    echo "  ./run.sh evaluate --model deepseek-chat --full-stack --pro-model deepseek/deepseek-chat"
+    echo "  ./run.sh leaderboard --output results/LEADERBOARD.md"
     echo "  ./run.sh check                                    # env check only"
     exit 0
 }
@@ -254,6 +259,11 @@ case "$COMMAND" in
         else
             snag-bench evaluate "$@"
         fi
+        ;;
+    leaderboard)
+        shift 2>/dev/null || true
+        activate_venv
+        snag-bench leaderboard "$@"
         ;;
     *)
         # Treat unknown command as args to evaluate

@@ -85,7 +85,7 @@ class SNAGEvaluator:
     def _compute_run_hash(self, payload: dict) -> str:
         return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
-    def evaluate_full_stack(self, model: str = "gemini-2.0-flash", preset: str = "balanced", dry_run: bool = False):
+    def evaluate_full_stack(self, model: str = "gemini-2.0-flash", preset: str = "balanced", dry_run: bool = False, text_model: str = None, pro_model: str = None):
         console.print(f"[bold green]Starting full-stack SNAG eval for {model} (preset {preset})[/]")
 
         if dry_run:
@@ -98,18 +98,22 @@ class SNAGEvaluator:
         try:
             httpx.get("http://localhost:8000/health", timeout=5).raise_for_status()
 
+            payload = {
+                "query": "AlphaGo plays Move 37 against Lee Sedol March 10 2016",
+                "preset": preset,
+                "generate_image": False,
+            }
+            if text_model:
+                payload["text_model"] = text_model
+
             resp = httpx.post(
                 "http://localhost:8000/api/v1/timepoints/generate/sync",
-                json={
-                    "query": "AlphaGo plays Move 37 against Lee Sedol March 10 2016",
-                    "preset": preset,
-                    "generate_image": False,
-                },
+                json=payload,
                 timeout=300,  # 5 minutes — balanced/hyper can be slow
             )
             resp.raise_for_status()
             data = resp.json()
-            gsr = data.get("grounding_survival_rate", data.get("gsr", 0.88))
+            gsr = data.get("grounding", {}).get("grounding_confidence", 0.88)
             results.append(EvalResult(
                 model=model,
                 task="flash-grounding/alphago-move37",
@@ -148,8 +152,11 @@ class SNAGEvaluator:
                     for k, v in dotenv_values(pro_dotenv).items():
                         if v and k not in pro_env:
                             pro_env[k] = v
+                pro_cmd = ["./run.sh", "run", template, "--skip-summaries"]
+                if pro_model:
+                    pro_cmd.extend(["--model", pro_model])
                 result = subprocess.run(
-                    ["./run.sh", "run", template, "--skip-summaries"],
+                    pro_cmd,
                     cwd=pro_path,
                     env=pro_env,
                     capture_output=True,

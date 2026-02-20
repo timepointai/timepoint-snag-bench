@@ -20,6 +20,9 @@ from .axes.human import evaluate_htp
 
 console = Console()
 
+# Configurable service URLs (defaults to local dev, overridden by Railway runner)
+FLASH_URL = os.environ.get("FLASH_URL", "http://localhost:8000")
+
 # Progress signals from Pro that indicate the run is alive and working
 PROGRESS_SIGNALS = [
     "Dialog quality", "Voice distinctiveness", "Mechanisms Used",
@@ -185,7 +188,7 @@ class SNAGEvaluator:
 
         # Check Flash health once
         try:
-            httpx.get("http://localhost:8000/health", timeout=5).raise_for_status()
+            httpx.get(f"{FLASH_URL}/health", timeout=5).raise_for_status()
         except Exception as e:
             console.print(f"[red]Flash not available: {e} — skipping Axis 1[/]")
             return results
@@ -203,7 +206,7 @@ class SNAGEvaluator:
                     payload["text_model"] = text_model
 
                 resp = httpx.post(
-                    "http://localhost:8000/api/v1/timepoints/generate/sync",
+                    f"{FLASH_URL}/api/v1/timepoints/generate/sync",
                     json=payload, timeout=300,
                 )
                 resp.raise_for_status()

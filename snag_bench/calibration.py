@@ -23,10 +23,22 @@ Target calibration (frontier models):
 """
 
 import json
+import importlib.resources
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 TIER_WEIGHTS = {1: 1.0, 2: 1.5, 3: 2.5}
+
+def _default_tasks_dir() -> Path:
+    """Resolve tasks directory: check CWD first, then package data."""
+    cwd_tasks = Path("tasks")
+    if cwd_tasks.is_dir() and (cwd_tasks / "tier1_easy.json").exists():
+        return cwd_tasks
+    # Fall back to package-bundled tasks
+    pkg_root = Path(__file__).resolve().parent.parent / "tasks"
+    if pkg_root.is_dir():
+        return pkg_root
+    return cwd_tasks
 
 AXIS_WEIGHTS = {
     "grounding": 0.25,
@@ -36,9 +48,9 @@ AXIS_WEIGHTS = {
 }
 
 
-def load_tasks(tasks_dir: str = "tasks") -> List[dict]:
+def load_tasks(tasks_dir: str = None) -> List[dict]:
     """Load all tasks from tier JSON files, injecting tier into each task."""
-    tasks_path = Path(tasks_dir)
+    tasks_path = Path(tasks_dir) if tasks_dir else _default_tasks_dir()
     all_tasks = []
     for tier_file in ["tier1_easy.json", "tier2_medium.json", "tier3_hard.json"]:
         path = tasks_path / tier_file

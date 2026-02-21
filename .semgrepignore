@@ -1,0 +1,5 @@
+tests/
+.venv/
+build/
+dist/
+*.egg-info/

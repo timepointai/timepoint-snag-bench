@@ -22,6 +22,15 @@ console = Console()
 
 # Configurable service URLs (defaults to local dev, overridden by Railway runner)
 FLASH_URL = os.environ.get("FLASH_URL", "http://localhost:8000")
+FLASH_SERVICE_KEY = os.environ.get("FLASH_SERVICE_KEY", "")
+
+
+def _flash_headers() -> dict:
+    """Build headers for Flash API requests (includes service key if configured)."""
+    headers = {}
+    if FLASH_SERVICE_KEY:
+        headers["X-Service-Key"] = FLASH_SERVICE_KEY
+    return headers
 
 # Progress signals from Pro that indicate the run is alive and working
 PROGRESS_SIGNALS = [
@@ -188,7 +197,7 @@ class SNAGEvaluator:
 
         # Check Flash health once
         try:
-            httpx.get(f"{FLASH_URL}/health", timeout=5).raise_for_status()
+            httpx.get(f"{FLASH_URL}/health", headers=_flash_headers(), timeout=5).raise_for_status()
         except Exception as e:
             console.print(f"[red]Flash not available: {e} — skipping Axis 1[/]")
             return results
@@ -207,7 +216,7 @@ class SNAGEvaluator:
 
                 resp = httpx.post(
                     f"{FLASH_URL}/api/v1/timepoints/generate/sync",
-                    json=payload, timeout=300,
+                    json=payload, headers=_flash_headers(), timeout=300,
                 )
                 resp.raise_for_status()
                 data = resp.json()

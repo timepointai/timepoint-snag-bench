@@ -77,5 +77,31 @@ def leaderboard(output: str, json_output: str, results_dir: str):
         json_path=json_output,
     )
 
+@main.command(name="tfi-report")
+@click.option("--domain", required=True, help="Domain to evaluate (e.g. 'test', 'history', 'finance')")
+@click.option("--model", default=None, help="Model to evaluate")
+@click.option("--output", default=None, help="Output file path (default: stdout)")
+def tfi_report(domain: str, model: str, output: str):
+    """Generate a Temporal Fidelity Index (TFI) report with GCQ coverage metrics."""
+    from pathlib import Path
+    from snag_bench.axes.coverage import evaluate_coverage_stub
+    import json
+
+    score, evidence = evaluate_coverage_stub()
+    report = {
+        "domain": domain,
+        "model": model or "stub",
+        "axis": "coverage",
+        "score": score,
+        "evidence": evidence,
+    }
+    report_json = json.dumps(report, indent=2, default=str)
+
+    if output:
+        Path(output).write_text(report_json)
+        console.print(f"TFI report written to {output}")
+    else:
+        console.print(report_json)
+
 if __name__ == "__main__":
     main()

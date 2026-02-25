@@ -8,6 +8,7 @@ class Axis(str, Enum):
     COHERENCE = "coherence"
     PREDICTIVE = "predictive"
     HUMAN = "human"
+    COVERAGE = "coverage"
 
 class EvalResult(BaseModel):
     model: str
@@ -16,7 +17,7 @@ class EvalResult(BaseModel):
     axis: Axis
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     submitter: str = "realityinspector"
-    version: str = "1.0.0"
+    version: str = "1.1.0"
     evidence: Dict[str, Any] = Field(default_factory=dict)
     run_hash: str = Field(..., min_length=64, max_length=64)  # sha256
     task_id: Optional[str] = None

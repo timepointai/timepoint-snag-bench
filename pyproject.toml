@@ -1,6 +1,6 @@
 [project]
 name = "timepoint-snag-bench"
-version = "1.0.0"
+version = "1.1.0"
 description = "SNAG Bench — orchestrator that makes Flash + Daedalus + Proteus one closed temporal reasoning loop"
 readme = "README.md"
 requires-python = ">=3.10"

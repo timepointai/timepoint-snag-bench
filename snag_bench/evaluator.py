@@ -17,12 +17,15 @@ from .schema import EvalResult, Axis
 from .calibration import load_tasks, load_tasks_by_tier, difficulty_weighted_score
 from .axes.predictive import evaluate_predictive_stub
 from .axes.human import evaluate_htp
+from .axes.coverage import evaluate_coverage_stub
 
 console = Console()
 
 # Configurable service URLs (defaults to local dev, overridden by Railway runner)
 FLASH_URL = os.environ.get("FLASH_URL", "http://localhost:8000")
 FLASH_SERVICE_KEY = os.environ.get("FLASH_SERVICE_KEY", "")
+PRO_URL = os.environ.get("PRO_URL", "")
+PRO_API_KEY = os.environ.get("PRO_API_KEY", "")
 
 
 def _flash_headers() -> dict:
@@ -256,17 +259,175 @@ class SNAGEvaluator:
 
     # ── Axis 2: Pro coherence (per-model) ────────────────────────────
 
+    def _run_axis2_cloud(
+        self, model: str, out_file: Path = None,
+    ) -> List[EvalResult]:
+        """Run Pro via Cloud API for TCS score."""
+        results = []
+        template = "showcase/mars_mission_portal"
+        console.print(f"[cyan]Axis 2 (TCS): Running Pro Cloud API ({template})...[/]")
+
+        try:
+            headers = {
+                "X-API-Key": PRO_API_KEY,
+                "Content-Type": "application/json",
+            }
+
+            # Create job
+            create_resp = httpx.post(
+                f"{PRO_URL}/api/jobs",
+                headers=headers,
+                json={
+                    "template_id": template,
+                    "temporal_mode": "portal",
+                    "entity_count": 4,
+                    "timepoint_count": 10,
+                    "budget_limit_usd": 5.0,
+                },
+                timeout=30,
+            )
+            create_resp.raise_for_status()
+            job = create_resp.json()
+            job_id = job["id"]
+            console.print(f"  [dim]Pro Cloud job created: {job_id}[/]")
+
+            # Poll until completed/failed (max 1 hour)
+            max_polls = 120  # 120 * 30s = 1 hour
+            for poll_num in range(max_polls):
+                time.sleep(30)
+                poll_resp = httpx.get(
+                    f"{PRO_URL}/api/jobs/{job_id}",
+                    headers=headers,
+                    timeout=15,
+                )
+                poll_resp.raise_for_status()
+                status = poll_resp.json().get("status", "unknown")
+
+                if poll_num % 4 == 0:  # Log every 2 minutes
+                    console.print(f"  [dim]Pro Cloud: {status} (poll {poll_num + 1})...[/]")
+
+                if status == "completed":
+                    break
+                elif status == "failed":
+                    error_msg = poll_resp.json().get("error", "unknown error")
+                    console.print(f"[red]Pro Cloud job failed: {error_msg}[/]")
+                    return results
+            else:
+                console.print(f"[red]Pro Cloud job timed out after {max_polls * 30}s[/]")
+                return results
+
+            # Get results
+            result_resp = httpx.get(
+                f"{PRO_URL}/api/results/{job_id}",
+                headers=headers,
+                timeout=30,
+            )
+            result_resp.raise_for_status()
+            result_json = result_resp.json()
+
+            # Parse TCS from cloud result
+            tcs, tcs_evidence = self._parse_tcs_cloud(result_json)
+            tcs_evidence["source"] = "cloud_api"
+            tcs_evidence["job_id"] = job_id
+
+            result = EvalResult(
+                model=model,
+                task=f"pro-coherence/{template}",
+                score=tcs,
+                axis=Axis.COHERENCE,
+                evidence={"template": template, **tcs_evidence},
+                run_hash=self._compute_run_hash({"job_id": job_id, "result": str(result_json)[:500]}),
+            )
+            results.append(result)
+            if out_file:
+                with out_file.open("a") as f:
+                    f.write(result.model_dump_json() + "\n")
+            console.print(f"[green]Axis 2 TCS (cloud): {tcs:.3f}[/]")
+
+        except Exception as e:
+            console.print(f"[red]Pro Cloud failed: {e}[/]")
+
+        return results
+
+    def _parse_tcs_cloud(self, result_json: dict) -> tuple[float, dict]:
+        """Parse TCS from Pro Cloud API result_json."""
+        evidence = {}
+
+        # Cloud results may contain structured data directly
+        result_data = result_json.get("result_json", result_json)
+
+        # Extract entity/timepoint/dialog counts
+        entities = result_data.get("entities", [])
+        timepoints = result_data.get("timepoints", [])
+        dialogs = result_data.get("dialogs", [])
+        cost = result_data.get("cost", result_json.get("cost"))
+
+        evidence["entities_created"] = len(entities) if isinstance(entities, list) else 0
+        evidence["timepoints_created"] = len(timepoints) if isinstance(timepoints, list) else 0
+        evidence["dialog_count"] = len(dialogs) if isinstance(dialogs, list) else 0
+
+        if cost is not None:
+            evidence["cost_usd"] = float(cost) if not isinstance(cost, float) else cost
+
+        # Look for quality metrics in the result
+        convergence = result_data.get("convergence_score")
+        if convergence is not None:
+            s = float(convergence)
+            if s > 1.0:
+                s = s / 100.0  # handle percentage format
+            evidence["convergence_score"] = s
+            return s, evidence
+
+        dq_scores = result_data.get("dialog_quality_scores", [])
+        vd_scores = result_data.get("voice_distinctiveness_scores", [])
+
+        if dq_scores:
+            evidence["dialog_quality_scores"] = dq_scores
+            evidence["dialog_quality_mean"] = sum(dq_scores) / len(dq_scores)
+        if vd_scores:
+            evidence["voice_distinctiveness_scores"] = vd_scores
+            evidence["voice_distinctiveness_mean"] = sum(vd_scores) / len(vd_scores)
+
+        mechanisms = result_data.get("mechanisms_used", [])
+        if mechanisms:
+            evidence["mechanisms_used"] = mechanisms
+            evidence["mechanism_count"] = len(mechanisms)
+
+        # Compute composite TCS
+        if dq_scores and vd_scores:
+            dq_mean = sum(dq_scores) / len(dq_scores)
+            vd_mean = sum(vd_scores) / len(vd_scores)
+            mech_coverage = min(len(mechanisms) / 19.0, 1.0)
+            score = 0.5 * dq_mean + 0.3 * vd_mean + 0.2 * mech_coverage
+        elif dq_scores:
+            score = sum(dq_scores) / len(dq_scores)
+        else:
+            # Fallback: estimate from entity/dialog counts
+            entity_score = min(evidence["entities_created"] / 4.0, 1.0)
+            dialog_score = min(evidence["dialog_count"] / 10.0, 1.0)
+            score = 0.6 * dialog_score + 0.4 * entity_score if evidence["dialog_count"] > 0 else 0.7
+
+        return min(score, 1.0), evidence
+
     def _run_axis2(
         self, model: str, pro_model: str = None, out_file: Path = None,
     ) -> List[EvalResult]:
-        """Run Pro template for TCS score."""
+        """Run Pro template for TCS score.
+
+        Prefers Pro Cloud API (PRO_URL + PRO_API_KEY) if configured.
+        Falls back to local subprocess if Pro repo is available.
+        """
+        # Try cloud API first
+        if PRO_URL and PRO_API_KEY:
+            return self._run_axis2_cloud(model, out_file=out_file)
+
         results = []
         pro_path = Path(os.environ.get(
             "PRO_REPO_PATH", "~/Documents/GitHub/timepoint-pro",
         )).expanduser()
 
         if not pro_path.is_dir():
-            console.print(f"[yellow]timepoint-pro not found at {pro_path} — skipping Axis 2[/]")
+            console.print(f"[yellow]timepoint-pro not found at {pro_path} and no PRO_URL configured — skipping Axis 2[/]")
             return results
 
         template = "mars_mission_portal"
@@ -342,6 +503,26 @@ class SNAGEvaluator:
         console.print(f"[green]Axis 3 WMNED: {score:.3f} (stub)[/]")
         return [result]
 
+    # ── Axis 5: Coverage stub ───────────────────────────────────────
+
+    def _run_axis5(self, model: str, out_file: Path = None) -> List[EvalResult]:
+        """Return stubbed GCQ score."""
+        console.print(f"[cyan]Axis 5 (GCQ): Returning stub scores...[/]")
+        score, evidence = evaluate_coverage_stub()
+        result = EvalResult(
+            model=model,
+            task="coverage-stub/gcq",
+            score=score,
+            axis=Axis.COVERAGE,
+            evidence=evidence,
+            run_hash=self._compute_run_hash(evidence),
+        )
+        if out_file:
+            with out_file.open("a") as f:
+                f.write(result.model_dump_json() + "\n")
+        console.print(f"[green]Axis 5 GCQ: {score:.3f} (stub)[/]")
+        return [result]
+
     # ── Axis 4: HTP (per-task) ───────────────────────────────────────
 
     def _run_axis4_tasks(
@@ -371,7 +552,7 @@ class SNAGEvaluator:
             if r.task_id and r.evidence.get("flash_data"):
                 flash_data_by_task[r.task_id] = r.evidence["flash_data"]
 
-        console.print(f"[cyan]Axis 4 (HTP): Rating {len(tasks)} tasks with 3 LLM raters...[/]")
+        console.print(f"[cyan]Axis 4 (HTP): Rating {len(tasks)} tasks with 5 LLM raters (penalty scoring)...[/]")
 
         for i, task in enumerate(tasks, 1):
             task_id = task["id"]
@@ -419,7 +600,11 @@ class SNAGEvaluator:
         pro_model: str = None,
         skip_axis2: bool = False,
     ) -> List[EvalResult]:
-        """Run full benchmark across models and task tiers."""
+        """Run full benchmark across models and task tiers.
+
+        Each EvalResult has an `internal` field (default False). Results with
+        internal=True are excluded from the public leaderboard by default.
+        """
         tasks = load_tasks_by_tier(tiers=tiers)
         if not tasks:
             console.print("[red]No tasks loaded — check tasks/ directory[/]")
@@ -430,7 +615,7 @@ class SNAGEvaluator:
             tier_counts[t["tier"]] = tier_counts.get(t["tier"], 0) + 1
         tier_str = ", ".join(f"T{k}:{v}" for k, v in sorted(tier_counts.items()))
 
-        console.print(f"[bold green]SNAG Bench v1.0 — {len(tasks)} tasks ({tier_str}), {len(models)} model(s)[/]")
+        console.print(f"[bold green]SNAG Bench v1.1 — {len(tasks)} tasks ({tier_str}), {len(models)} model(s)[/]")
         console.print()
 
         all_results = []
@@ -464,8 +649,12 @@ class SNAGEvaluator:
             )
             all_results.extend(a4_results)
 
+            # Axis 5: Coverage stub
+            a5_results = self._run_axis5(model, out_file=out_file)
+            all_results.extend(a5_results)
+
             # Print per-model summary
-            self._print_model_summary(model, a1_results, a2_results if not skip_axis2 else [], a3_results, a4_results)
+            self._print_model_summary(model, a1_results, a2_results if not skip_axis2 else [], a3_results, a4_results, a5_results)
             console.print()
 
         console.print(f"[bold green]Benchmark complete — {len(all_results)} total results[/]")
@@ -475,6 +664,7 @@ class SNAGEvaluator:
         self, model: str,
         a1: List[EvalResult], a2: List[EvalResult],
         a3: List[EvalResult], a4: List[EvalResult],
+        a5: List[EvalResult] = None,
     ):
         """Print difficulty-weighted summary for one model."""
         console.print(f"\n[bold]{model} — Summary:[/]")
@@ -505,6 +695,11 @@ class SNAGEvaluator:
         else:
             htp_weighted = None
 
+        # GCQ
+        gcq = a5[0].score if a5 else None
+        if gcq is not None:
+            console.print(f"  GCQ (stub):     {gcq:.3f}")
+
         # Composite
         from .calibration import composite_score as calc_composite
         axis_scores = {}
@@ -516,6 +711,8 @@ class SNAGEvaluator:
             axis_scores["predictive"] = wmned
         if htp_weighted is not None:
             axis_scores["human"] = htp_weighted
+        if gcq is not None:
+            axis_scores["coverage"] = gcq
 
         comp = calc_composite(axis_scores)
         if comp is not None:

@@ -41,10 +41,11 @@ def _default_tasks_dir() -> Path:
     return cwd_tasks
 
 AXIS_WEIGHTS = {
-    "grounding": 0.25,
-    "coherence": 0.30,
-    "predictive": 0.25,
-    "human": 0.20,
+    "grounding": 0.22,
+    "coherence": 0.25,
+    "predictive": 0.22,
+    "human": 0.16,
+    "coverage": 0.15,
 }
 
 

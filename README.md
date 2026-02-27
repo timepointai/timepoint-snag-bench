@@ -4,18 +4,23 @@
 
 SNAG Bench scores models across 4 axes using 60 fixed tasks at 3 difficulty tiers. Results are saved as JSONL for reproducibility and aggregated into a public leaderboard.
 
+SNAG-Bench measures **Causal Resolution** — how much of a scenario has been rendered (Coverage) and how reliably (Convergence) — across Rendered Past (grounding fidelity) and Rendered Future (temporal coherence, predictive precision). Scores feed the planned **Timepoint Futures Index (TFI)**.
+
 Part of the [Timepoint AI](https://github.com/timepoint-ai) stack.
 
 ## Scoring Axes
 
 | Axis | Metric | Weight | Source | Status |
 |------|--------|--------|--------|--------|
-| 1. Grounding Fidelity | GSR | 25% | Flash API grounding confidence | Active |
-| 2. Temporal Coherence | TCS | 30% | Pro/Daedalus dialog quality + mechanism coverage | Active |
-| 3. Predictive Precision | WMNED | 25% | Proteus prediction markets | Stubbed |
-| 4. Human Judgment | HTP | 20% | LLM-as-human roleplayer panel (3 personas, 4 dimensions) | Active |
+| 1. Grounding Fidelity | GSR | 20% | Flash API grounding confidence | Active |
+| 2. Temporal Coherence | TCS | 25% | Pro/Daedalus dialog quality + mechanism coverage | Active |
+| 3. Predictive Precision | WMNED | 20% | Proteus prediction markets | Stubbed |
+| 4. Human Judgment | HTP | 17% | LLM-as-human roleplayer panel (3 personas, 4 dimensions) | Active |
+| 5. Graph Coverage Quality | GCQ | 18% | Path completeness, convergence stability, anchor fidelity, temporal consistency, counterfactual diversity | Stub (`snag_bench/axes/coverage.py`) |
 
-**Composite:** `0.25×GSR + 0.30×TCS + 0.25×(1-WMNED) + 0.20×HTP` (renormalized over available axes)
+**Composite:** `0.20×GSR + 0.25×TCS + 0.20×(1-WMNED) + 0.17×HTP + 0.18×GCQ` (renormalized over available axes)
+
+Recent: Axis 5 Graph Coverage Quality (GCQ) stub in `snag_bench/axes/coverage.py`. Updated calibration config.
 
 ## Task Set
 
@@ -148,11 +153,34 @@ timepoint-snag-bench/
 
 For Timepoint AI internal use, a hosted version runs on Railway via [`snag-bench-runner`](https://github.com/timepoint-ai/snag-bench-runner). It provides a REST API for triggering and monitoring long benchmark runs without needing a local setup. See that repo's README for API docs.
 
+### Data Format
+
+All benchmark results are expressible as TDF records. Planned: `tfi-report` CLI command for generating Timepoint Futures Index reports from benchmark data.
+
 ## Leaderboard
 
 See [results/LEADERBOARD.md](results/LEADERBOARD.md) for current standings.
 
 External models only — Timepoint internal engine runs are excluded from the public leaderboard.
+
+## Timepoint Suite
+
+Open-source engines for temporal AI. Render the past. Simulate the future. Score the predictions. Accumulate the graph.
+
+| Service | Type | Repo | Role |
+|---------|------|------|------|
+| **Flash** | Open Source | timepoint-flash | Reality Writer — renders grounded historical moments (Synthetic Time Travel) |
+| **Pro** | Open Source | timepoint-pro | Rendering Engine — SNAG-powered simulation, TDF output, training data |
+| **Clockchain** | Open Source | timepoint-clockchain | Temporal Causal Graph — Rendered Past + Rendered Future, growing 24/7 |
+| **SNAG Bench** | **Open Source** | **timepoint-snag-bench** | **Quality Certifier — measures Causal Resolution across renderings** |
+| **Proteus** | Open Source | proteus | Settlement Layer — prediction markets that validate Rendered Futures |
+| **TDF** | Open Source | timepoint-tdf | Data Format — JSON-LD interchange across all services |
+| **Web App** | Private | timepoint-web-app | Browser client at app.timepointai.com |
+| **iPhone App** | Private | timepoint-iphone-app | iOS client — Synthetic Time Travel on mobile |
+| **Billing** | Private | timepoint-billing | Payment processing — Apple IAP + Stripe |
+| **Landing** | Private | timepoint-landing | Marketing site at timepointai.com |
+
+**The Timepoint Thesis** — a forthcoming paper formalizing the Rendered Past / Rendered Future framework, the mathematics of Causal Resolution, the TDF specification, and the Proof of Causal Convergence protocol. Follow [@seanmcdonaldxyz](https://x.com/seanmcdonaldxyz) for updates.
 
 ## License
 

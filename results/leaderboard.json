@@ -1,1 +1,0 @@
-{"version":"1.0.0","generated":"2026-02-24T03:34:00.141846","scoring":{"GSR_weight":0.25,"TCS_weight":0.3,"WMNED_weight":0.25,"HTP_weight":0.2,"difficulty_weighted":true,"WMNED_stubbed":true},"models":[{"rank":1,"model":"gemini-2.0-flash","composite":0.91,"axes":{"GSR":0.9869,"WMNED":0.817,"HTP":0.9302}}]}

@@ -16,7 +16,8 @@ dependencies = [
     "httpx>=0.25",
     "web3>=6.0",
     "rich>=13.0",
-    "python-dotenv>=1.0"
+    "python-dotenv>=1.0",
+    "timepoint-tdf @ git+https://github.com/timepoint-ai/timepoint-tdf.git",
 ]
 
 [project.optional-dependencies]

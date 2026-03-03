@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from rich.console import Console
+from timepoint_tdf import TDFRecord
 
-from .schema import Axis, EvalResult
+from .schema import Axis
 from .calibration import difficulty_weighted_score, AXIS_WEIGHTS
 
 console = Console()
@@ -24,8 +25,8 @@ AXIS_LABELS = {
 INTERNAL_PREFIXES = ["timepoint-", "flash-internal", "pro-internal"]
 
 
-def load_all_results(results_dir: Path) -> List[EvalResult]:
-    """Glob all *.jsonl files, parse each line as EvalResult, skip malformed."""
+def load_all_results(results_dir: Path) -> List[TDFRecord]:
+    """Glob all *.jsonl files, parse each line as TDFRecord, skip malformed."""
     results = []
     for path in sorted(results_dir.glob("*.jsonl")):
         for lineno, line in enumerate(path.read_text().splitlines(), 1):
@@ -33,21 +34,21 @@ def load_all_results(results_dir: Path) -> List[EvalResult]:
             if not line:
                 continue
             try:
-                results.append(EvalResult.model_validate_json(line))
+                results.append(TDFRecord.model_validate_json(line))
             except Exception as e:
                 console.print(f"[yellow]Skip {path.name}:{lineno}: {e}[/]")
     return results
 
 
-def _is_internal(model: str, result: EvalResult) -> bool:
+def _is_internal(model: str, result: TDFRecord) -> bool:
     """Check if a result is from an internal Timepoint engine run."""
-    if result.internal:
+    if result.payload.get("internal", False):
         return True
     return any(model.lower().startswith(p) for p in INTERNAL_PREFIXES)
 
 
 def best_scores_by_model(
-    results: List[EvalResult], external_only: bool = True,
+    results: List[TDFRecord], external_only: bool = True,
 ) -> Dict[str, Dict[Axis, float]]:
     """Group by model, compute difficulty-weighted score per axis.
 
@@ -55,26 +56,28 @@ def best_scores_by_model(
     For per-model axes (TCS, WMNED), takes max score.
     """
     # Group results by model and axis
-    grouped: Dict[str, Dict[Axis, List[EvalResult]]] = defaultdict(lambda: defaultdict(list))
+    grouped: Dict[str, Dict[Axis, List[TDFRecord]]] = defaultdict(lambda: defaultdict(list))
     for r in results:
-        if external_only and _is_internal(r.model, r):
+        r_model = r.payload["model"]
+        r_axis = Axis(r.payload["axis"])
+        if external_only and _is_internal(r_model, r):
             continue
-        grouped[r.model][r.axis].append(r)
+        grouped[r_model][r_axis].append(r)
 
     scores = {}
     for model, axes in grouped.items():
         model_scores = {}
         for axis, axis_results in axes.items():
             # Check if these are per-task results (have tier info)
-            has_tiers = any(r.tier is not None for r in axis_results)
+            has_tiers = any(r.payload.get("tier") is not None for r in axis_results)
 
             if has_tiers and len(axis_results) > 1:
                 # Difficulty-weighted scoring for per-task axes
-                pairs = [(r.score, r.tier or 1) for r in axis_results]
+                pairs = [(r.payload["score"], r.payload.get("tier", 1)) for r in axis_results]
                 model_scores[axis] = difficulty_weighted_score(pairs)
             else:
                 # Max score for per-model axes
-                model_scores[axis] = max(r.score for r in axis_results)
+                model_scores[axis] = max(r.payload["score"] for r in axis_results)
 
         scores[model] = model_scores
 
@@ -101,7 +104,7 @@ def compute_composite(axis_scores: Dict[Axis, float]) -> Optional[float]:
 def render_markdown_table(
     scores: Dict[str, Dict[Axis, float]],
     composites: Dict[str, float],
-    results: List[EvalResult],
+    results: List[TDFRecord],
 ) -> str:
     """Markdown table sorted by composite descending, missing axes show '---'."""
     axes_order = [Axis.GROUNDING, Axis.COHERENCE, Axis.PREDICTIVE, Axis.HUMAN]
@@ -122,10 +125,10 @@ def render_markdown_table(
         rows.append(cells)
 
     # Count unique tasks per model
-    total_results = len([r for r in results if not _is_internal(r.model, r)])
+    total_results = len([r for r in results if not _is_internal(r.payload["model"], r)])
 
     lines = []
-    lines.append("# SNAG Bench Leaderboard v1.0")
+    lines.append("# SNAG Bench Leaderboard v1.1")
     lines.append("")
     lines.append("Composite: 25% GSR + 30% TCS + 25% WMNED + 20% HTP (renormalized over available axes)")
     lines.append("")
@@ -165,7 +168,7 @@ def render_json(
         models.append(entry)
 
     return {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "generated": datetime.utcnow().isoformat(),
         "scoring": {
             "GSR_weight": 0.25,

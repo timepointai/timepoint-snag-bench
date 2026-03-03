@@ -7,7 +7,7 @@ console = Console()
 
 @click.group()
 def main():
-    """SNAG Bench — Temporal Reasoning Benchmark v1.0"""
+    """SNAG Bench — Temporal Reasoning Benchmark v1.1 (TDF)"""
     pass
 
 @main.command()

@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import subprocess
@@ -12,8 +11,9 @@ import httpx
 from dotenv import dotenv_values
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+from timepoint_tdf import TDFRecord
 
-from .schema import EvalResult, Axis
+from .schema import eval_record, Axis
 from .calibration import load_tasks, load_tasks_by_tier, difficulty_weighted_score
 from .axes.predictive import evaluate_predictive_stub
 from .axes.human import evaluate_htp
@@ -186,15 +186,12 @@ class SNAGEvaluator:
 
         return min(score, 1.0), evidence
 
-    def _compute_run_hash(self, payload: dict) -> str:
-        return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
-
     # ── Axis 1: Flash grounding (per-task) ───────────────────────────
 
     def _run_axis1_tasks(
         self, model: str, tasks: List[dict], preset: str = "balanced",
         text_model: str = None, out_file: Path = None,
-    ) -> List[EvalResult]:
+    ) -> List[TDFRecord]:
         """Run each task through Flash and collect GSR scores."""
         results = []
 
@@ -225,7 +222,7 @@ class SNAGEvaluator:
                 data = resp.json()
                 gsr = data.get("grounding", {}).get("grounding_confidence", 0.0)
 
-                result = EvalResult(
+                result = eval_record(
                     model=model,
                     task=f"flash-grounding/{task_id}",
                     score=min(max(gsr, 0.0), 1.0),
@@ -241,7 +238,6 @@ class SNAGEvaluator:
                             if data.get(k) is not None
                         },
                     },
-                    run_hash=self._compute_run_hash(data),
                 )
                 results.append(result)
 
@@ -261,7 +257,7 @@ class SNAGEvaluator:
 
     def _run_axis2_cloud(
         self, model: str, out_file: Path = None,
-    ) -> List[EvalResult]:
+    ) -> List[TDFRecord]:
         """Run Pro via Cloud API for TCS score."""
         results = []
         template = "showcase/mars_mission_portal"
@@ -330,13 +326,12 @@ class SNAGEvaluator:
             tcs_evidence["source"] = "cloud_api"
             tcs_evidence["job_id"] = job_id
 
-            result = EvalResult(
+            result = eval_record(
                 model=model,
                 task=f"pro-coherence/{template}",
                 score=tcs,
                 axis=Axis.COHERENCE,
                 evidence={"template": template, **tcs_evidence},
-                run_hash=self._compute_run_hash({"job_id": job_id, "result": str(result_json)[:500]}),
             )
             results.append(result)
             if out_file:
@@ -411,7 +406,7 @@ class SNAGEvaluator:
 
     def _run_axis2(
         self, model: str, pro_model: str = None, out_file: Path = None,
-    ) -> List[EvalResult]:
+    ) -> List[TDFRecord]:
         """Run Pro template for TCS score.
 
         Prefers Pro Cloud API (PRO_URL + PRO_API_KEY) if configured.
@@ -463,13 +458,12 @@ class SNAGEvaluator:
 
             if has_quality_data:
                 tcs_evidence["exit_code"] = run_result.returncode
-                result = EvalResult(
+                result = eval_record(
                     model=model,
                     task=f"pro-coherence/{template}",
                     score=tcs,
                     axis=Axis.COHERENCE,
                     evidence={"template": template, **tcs_evidence},
-                    run_hash=self._compute_run_hash({"stdout": run_result.stdout[-500:]}),
                 )
                 results.append(result)
                 if out_file:
@@ -485,17 +479,16 @@ class SNAGEvaluator:
 
     # ── Axis 3: Predictive stub ──────────────────────────────────────
 
-    def _run_axis3(self, model: str, out_file: Path = None) -> List[EvalResult]:
+    def _run_axis3(self, model: str, out_file: Path = None) -> List[TDFRecord]:
         """Return stubbed WMNED score."""
         console.print(f"[cyan]Axis 3 (WMNED): Returning stub scores...[/]")
         score, evidence = evaluate_predictive_stub()
-        result = EvalResult(
+        result = eval_record(
             model=model,
             task="predictive-stub/10-markets",
             score=score,
             axis=Axis.PREDICTIVE,
             evidence=evidence,
-            run_hash=self._compute_run_hash(evidence),
         )
         if out_file:
             with out_file.open("a") as f:
@@ -505,17 +498,16 @@ class SNAGEvaluator:
 
     # ── Axis 5: Coverage stub ───────────────────────────────────────
 
-    def _run_axis5(self, model: str, out_file: Path = None) -> List[EvalResult]:
+    def _run_axis5(self, model: str, out_file: Path = None) -> List[TDFRecord]:
         """Return stubbed GCQ score."""
         console.print(f"[cyan]Axis 5 (GCQ): Returning stub scores...[/]")
         score, evidence = evaluate_coverage_stub()
-        result = EvalResult(
+        result = eval_record(
             model=model,
             task="coverage-stub/gcq",
             score=score,
             axis=Axis.COVERAGE,
             evidence=evidence,
-            run_hash=self._compute_run_hash(evidence),
         )
         if out_file:
             with out_file.open("a") as f:
@@ -526,9 +518,9 @@ class SNAGEvaluator:
     # ── Axis 4: HTP (per-task) ───────────────────────────────────────
 
     def _run_axis4_tasks(
-        self, model: str, tasks: List[dict], axis1_results: List[EvalResult],
+        self, model: str, tasks: List[dict], axis1_results: List[TDFRecord],
         out_file: Path = None,
-    ) -> List[EvalResult]:
+    ) -> List[TDFRecord]:
         """Run LLM-as-human rating for each task that has Axis 1 data."""
         results = []
 
@@ -549,8 +541,10 @@ class SNAGEvaluator:
         # Build lookup of Axis 1 flash_data by task_id
         flash_data_by_task = {}
         for r in axis1_results:
-            if r.task_id and r.evidence.get("flash_data"):
-                flash_data_by_task[r.task_id] = r.evidence["flash_data"]
+            r_task_id = r.payload.get("task_id")
+            r_evidence = r.payload.get("evidence", {})
+            if r_task_id and r_evidence.get("flash_data"):
+                flash_data_by_task[r_task_id] = r_evidence["flash_data"]
 
         console.print(f"[cyan]Axis 4 (HTP): Rating {len(tasks)} tasks with 5 LLM raters (penalty scoring)...[/]")
 
@@ -566,7 +560,7 @@ class SNAGEvaluator:
                 )
 
                 if htp > 0 or evidence.get("n_raters", 0) > 0:
-                    result = EvalResult(
+                    result = eval_record(
                         model=model,
                         task=f"human-plausibility/{task_id}",
                         score=min(max(htp, 0.0), 1.0),
@@ -574,7 +568,6 @@ class SNAGEvaluator:
                         task_id=task_id,
                         tier=tier,
                         evidence={"query": query, **evidence},
-                        run_hash=self._compute_run_hash(evidence),
                     )
                     results.append(result)
                     if out_file:
@@ -599,12 +592,8 @@ class SNAGEvaluator:
         text_model: str = None,
         pro_model: str = None,
         skip_axis2: bool = False,
-    ) -> List[EvalResult]:
-        """Run full benchmark across models and task tiers.
-
-        Each EvalResult has an `internal` field (default False). Results with
-        internal=True are excluded from the public leaderboard by default.
-        """
+    ) -> List[TDFRecord]:
+        """Run full benchmark across models and task tiers."""
         tasks = load_tasks_by_tier(tiers=tiers)
         if not tasks:
             console.print("[red]No tasks loaded — check tasks/ directory[/]")
@@ -662,41 +651,41 @@ class SNAGEvaluator:
 
     def _print_model_summary(
         self, model: str,
-        a1: List[EvalResult], a2: List[EvalResult],
-        a3: List[EvalResult], a4: List[EvalResult],
-        a5: List[EvalResult] = None,
+        a1: List[TDFRecord], a2: List[TDFRecord],
+        a3: List[TDFRecord], a4: List[TDFRecord],
+        a5: List[TDFRecord] = None,
     ):
         """Print difficulty-weighted summary for one model."""
         console.print(f"\n[bold]{model} — Summary:[/]")
 
         # GSR (difficulty-weighted)
         if a1:
-            gsr_pairs = [(r.score, r.tier or 1) for r in a1]
+            gsr_pairs = [(r.payload["score"], r.payload.get("tier", 1)) for r in a1]
             gsr_weighted = difficulty_weighted_score(gsr_pairs)
             console.print(f"  GSR (weighted): {gsr_weighted:.3f}  ({len(a1)} tasks)")
         else:
             gsr_weighted = None
 
         # TCS
-        tcs = a2[0].score if a2 else None
+        tcs = a2[0].payload["score"] if a2 else None
         if tcs is not None:
             console.print(f"  TCS:            {tcs:.3f}")
 
         # WMNED
-        wmned = a3[0].score if a3 else None
+        wmned = a3[0].payload["score"] if a3 else None
         if wmned is not None:
             console.print(f"  WMNED (stub):   {wmned:.3f}")
 
         # HTP (difficulty-weighted)
         if a4:
-            htp_pairs = [(r.score, r.tier or 1) for r in a4]
+            htp_pairs = [(r.payload["score"], r.payload.get("tier", 1)) for r in a4]
             htp_weighted = difficulty_weighted_score(htp_pairs)
             console.print(f"  HTP (weighted): {htp_weighted:.3f}  ({len(a4)} tasks)")
         else:
             htp_weighted = None
 
         # GCQ
-        gcq = a5[0].score if a5 else None
+        gcq = a5[0].payload["score"] if a5 else None
         if gcq is not None:
             console.print(f"  GCQ (stub):     {gcq:.3f}")
 

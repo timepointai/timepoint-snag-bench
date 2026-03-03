@@ -13,7 +13,7 @@ consistent cross-model scoring.
 
 import json
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 import httpx
 from rich.console import Console
@@ -147,7 +147,9 @@ def _format_scene(flash_data: dict, query: str) -> str:
     # Grounding
     grounding = flash_data.get("grounding", {})
     if grounding:
-        parts.append(f"Grounding confidence: {grounding.get('grounding_confidence', 'N/A')}")
+        parts.append(
+            f"Grounding confidence: {grounding.get('grounding_confidence', 'N/A')}"
+        )
         sources = grounding.get("sources", [])
         if sources:
             parts.append(f"Sources: {', '.join(str(s) for s in sources[:5])}")
@@ -192,7 +194,12 @@ def evaluate_htp(
             continue
 
         dims = {}
-        for dim in ["temporal_accuracy", "narrative_coherence", "factual_grounding", "period_authenticity"]:
+        for dim in [
+            "temporal_accuracy",
+            "narrative_coherence",
+            "factual_grounding",
+            "period_authenticity",
+        ]:
             val = result.get(dim)
             if isinstance(val, (int, float)) and 1 <= val <= 5:
                 dims[dim] = val
@@ -200,12 +207,14 @@ def evaluate_htp(
         if len(dims) >= 3:  # accept if at least 3/4 dimensions parsed
             avg = sum(dims.values()) / len(dims)
             all_ratings.append(avg)
-            evidence["raters"].append({
-                "name": persona["name"],
-                "scores": dims,
-                "mean": round(avg, 3),
-                "justification": result.get("justification", ""),
-            })
+            evidence["raters"].append(
+                {
+                    "name": persona["name"],
+                    "scores": dims,
+                    "mean": round(avg, 3),
+                    "justification": result.get("justification", ""),
+                }
+            )
 
     if not all_ratings:
         return 0.0, {**evidence, "error": "No valid ratings obtained"}

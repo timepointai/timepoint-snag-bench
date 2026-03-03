@@ -1,20 +1,18 @@
-import json
 import os
 import subprocess
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 
 import httpx
 from dotenv import dotenv_values
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
 from timepoint_tdf import TDFRecord
 
 from .schema import eval_record, Axis
-from .calibration import load_tasks, load_tasks_by_tier, difficulty_weighted_score
+from .calibration import load_tasks_by_tier, difficulty_weighted_score
 from .axes.predictive import evaluate_predictive_stub
 from .axes.human import evaluate_htp
 from .axes.coverage import evaluate_coverage_stub
@@ -35,13 +33,31 @@ def _flash_headers() -> dict:
         headers["X-Service-Key"] = FLASH_SERVICE_KEY
     return headers
 
+
 # Progress signals from Pro that indicate the run is alive and working
 PROGRESS_SIGNALS = [
-    "Dialog quality", "Voice distinctiveness", "Mechanisms Used",
-    "Entities Created", "Timepoints Created", "Cost:", "Convergence Score",
-    "Running template", "Step", "Generating", "Processing", "Loading",
-    "Creating", "Simulating", "Portal", "Backward", "Forward",
-    "LLM call", "API call", "Token", "Run ", "Template:",
+    "Dialog quality",
+    "Voice distinctiveness",
+    "Mechanisms Used",
+    "Entities Created",
+    "Timepoints Created",
+    "Cost:",
+    "Convergence Score",
+    "Running template",
+    "Step",
+    "Generating",
+    "Processing",
+    "Loading",
+    "Creating",
+    "Simulating",
+    "Portal",
+    "Backward",
+    "Forward",
+    "LLM call",
+    "API call",
+    "Token",
+    "Run ",
+    "Template:",
 ]
 
 
@@ -64,8 +80,12 @@ class SNAGEvaluator:
     ) -> subprocess.CompletedProcess:
         """Run Pro subprocess with adaptive timeout based on output activity."""
         proc = subprocess.Popen(
-            cmd, cwd=cwd, env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            cmd,
+            cwd=cwd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
 
         stdout_lines = []
@@ -115,13 +135,17 @@ class SNAGEvaluator:
                 break
 
             if idle > stale_timeout:
-                console.print(f"[yellow]Pro stale — no output for {idle:.0f}s, killing[/]")
+                console.print(
+                    f"[yellow]Pro stale — no output for {idle:.0f}s, killing[/]"
+                )
                 proc.kill()
                 proc.wait(timeout=10)
                 break
 
             if now - last_status > status_interval:
-                console.print(f"  [dim]... Pro running {elapsed:.0f}s, {lines_so_far} lines, last output {idle:.0f}s ago[/]")
+                console.print(
+                    f"  [dim]... Pro running {elapsed:.0f}s, {lines_so_far} lines, last output {idle:.0f}s ago[/]"
+                )
                 last_status = now
 
             time.sleep(2)
@@ -130,8 +154,10 @@ class SNAGEvaluator:
         t_err.join(timeout=5)
 
         return subprocess.CompletedProcess(
-            args=cmd, returncode=proc.returncode,
-            stdout="".join(stdout_lines), stderr="".join(stderr_lines),
+            args=cmd,
+            returncode=proc.returncode,
+            stdout="".join(stdout_lines),
+            stderr="".join(stderr_lines),
         )
 
     # ── TCS parser ───────────────────────────────────────────────────
@@ -139,16 +165,23 @@ class SNAGEvaluator:
     def _parse_tcs(self, stdout: str) -> tuple[float, dict]:
         """Parse Pro stdout for coherence signals."""
         import re
+
         evidence = {}
 
-        conv_match = re.search(r'Convergence Score:\s*([\d.]+)%', stdout)
+        conv_match = re.search(r"Convergence Score:\s*([\d.]+)%", stdout)
         if conv_match:
             s = float(conv_match.group(1)) / 100.0
             evidence["convergence_score"] = s
             return s, evidence
 
-        dq_scores = [float(m) for m in re.findall(r'Dialog quality check: score=([\d.]+)', stdout)]
-        vd_scores = [float(m) for m in re.findall(r'Voice distinctiveness score: ([\d.]+)', stdout)]
+        dq_scores = [
+            float(m)
+            for m in re.findall(r"Dialog quality check: score=([\d.]+)", stdout)
+        ]
+        vd_scores = [
+            float(m)
+            for m in re.findall(r"Voice distinctiveness score: ([\d.]+)", stdout)
+        ]
 
         if dq_scores:
             evidence["dialog_quality_scores"] = dq_scores
@@ -157,20 +190,20 @@ class SNAGEvaluator:
             evidence["voice_distinctiveness_scores"] = vd_scores
             evidence["voice_distinctiveness_mean"] = sum(vd_scores) / len(vd_scores)
 
-        mech_match = re.search(r'Mechanisms Used:\s*(.+)', stdout)
+        mech_match = re.search(r"Mechanisms Used:\s*(.+)", stdout)
         if mech_match:
-            mechs = [m.strip() for m in mech_match.group(1).split(',') if m.strip()]
+            mechs = [m.strip() for m in mech_match.group(1).split(",") if m.strip()]
             evidence["mechanisms_used"] = mechs
             evidence["mechanism_count"] = len(mechs)
 
-        ent_match = re.search(r'Entities Created:\s*(\d+)', stdout)
-        tp_match = re.search(r'Timepoints Created:\s*(\d+)', stdout)
+        ent_match = re.search(r"Entities Created:\s*(\d+)", stdout)
+        tp_match = re.search(r"Timepoints Created:\s*(\d+)", stdout)
         if ent_match:
             evidence["entities_created"] = int(ent_match.group(1))
         if tp_match:
             evidence["timepoints_created"] = int(tp_match.group(1))
 
-        cost_match = re.search(r'Cost: \$([\d.]+)', stdout)
+        cost_match = re.search(r"Cost: \$([\d.]+)", stdout)
         if cost_match:
             evidence["cost_usd"] = float(cost_match.group(1))
 
@@ -189,20 +222,28 @@ class SNAGEvaluator:
     # ── Axis 1: Flash grounding (per-task) ───────────────────────────
 
     def _run_axis1_tasks(
-        self, model: str, tasks: List[dict], preset: str = "balanced",
-        text_model: str = None, out_file: Path = None,
+        self,
+        model: str,
+        tasks: List[dict],
+        preset: str = "balanced",
+        text_model: str = None,
+        out_file: Path = None,
     ) -> List[TDFRecord]:
         """Run each task through Flash and collect GSR scores."""
         results = []
 
         # Check Flash health once
         try:
-            httpx.get(f"{FLASH_URL}/health", headers=_flash_headers(), timeout=5).raise_for_status()
+            httpx.get(
+                f"{FLASH_URL}/health", headers=_flash_headers(), timeout=5
+            ).raise_for_status()
         except Exception as e:
             console.print(f"[red]Flash not available: {e} — skipping Axis 1[/]")
             return results
 
-        console.print(f"[cyan]Axis 1 (GSR): Running {len(tasks)} tasks through Flash...[/]")
+        console.print(
+            f"[cyan]Axis 1 (GSR): Running {len(tasks)} tasks through Flash...[/]"
+        )
 
         for i, task in enumerate(tasks, 1):
             task_id = task["id"]
@@ -216,7 +257,9 @@ class SNAGEvaluator:
 
                 resp = httpx.post(
                     f"{FLASH_URL}/api/v1/timepoints/generate/sync",
-                    json=payload, headers=_flash_headers(), timeout=300,
+                    json=payload,
+                    headers=_flash_headers(),
+                    timeout=300,
                 )
                 resp.raise_for_status()
                 data = resp.json()
@@ -230,11 +273,19 @@ class SNAGEvaluator:
                     task_id=task_id,
                     tier=tier,
                     evidence={
-                        "preset": preset, "query": query,
+                        "preset": preset,
+                        "query": query,
                         "scene_id": data.get("id"),
                         "flash_data": {
-                            k: data.get(k) for k in
-                            ["title", "narrative", "description", "entities", "timepoints", "grounding"]
+                            k: data.get(k)
+                            for k in [
+                                "title",
+                                "narrative",
+                                "description",
+                                "entities",
+                                "timepoints",
+                                "grounding",
+                            ]
                             if data.get(k) is not None
                         },
                     },
@@ -246,7 +297,9 @@ class SNAGEvaluator:
                     with out_file.open("a") as f:
                         f.write(result.model_dump_json() + "\n")
 
-                console.print(f"  [{'green' if gsr >= 0.7 else 'yellow'}][{i}/{len(tasks)}] {task_id} (T{tier}): GSR {gsr:.3f}[/]")
+                console.print(
+                    f"  [{'green' if gsr >= 0.7 else 'yellow'}][{i}/{len(tasks)}] {task_id} (T{tier}): GSR {gsr:.3f}[/]"
+                )
 
             except Exception as e:
                 console.print(f"  [red][{i}/{len(tasks)}] {task_id}: failed — {e}[/]")
@@ -256,7 +309,9 @@ class SNAGEvaluator:
     # ── Axis 2: Pro coherence (per-model) ────────────────────────────
 
     def _run_axis2_cloud(
-        self, model: str, out_file: Path = None,
+        self,
+        model: str,
+        out_file: Path = None,
     ) -> List[TDFRecord]:
         """Run Pro via Cloud API for TCS score."""
         results = []
@@ -300,7 +355,9 @@ class SNAGEvaluator:
                 status = poll_resp.json().get("status", "unknown")
 
                 if poll_num % 4 == 0:  # Log every 2 minutes
-                    console.print(f"  [dim]Pro Cloud: {status} (poll {poll_num + 1})...[/]")
+                    console.print(
+                        f"  [dim]Pro Cloud: {status} (poll {poll_num + 1})...[/]"
+                    )
 
                 if status == "completed":
                     break
@@ -309,7 +366,9 @@ class SNAGEvaluator:
                     console.print(f"[red]Pro Cloud job failed: {error_msg}[/]")
                     return results
             else:
-                console.print(f"[red]Pro Cloud job timed out after {max_polls * 30}s[/]")
+                console.print(
+                    f"[red]Pro Cloud job timed out after {max_polls * 30}s[/]"
+                )
                 return results
 
             # Get results
@@ -357,8 +416,12 @@ class SNAGEvaluator:
         dialogs = result_data.get("dialogs", [])
         cost = result_data.get("cost", result_json.get("cost"))
 
-        evidence["entities_created"] = len(entities) if isinstance(entities, list) else 0
-        evidence["timepoints_created"] = len(timepoints) if isinstance(timepoints, list) else 0
+        evidence["entities_created"] = (
+            len(entities) if isinstance(entities, list) else 0
+        )
+        evidence["timepoints_created"] = (
+            len(timepoints) if isinstance(timepoints, list) else 0
+        )
         evidence["dialog_count"] = len(dialogs) if isinstance(dialogs, list) else 0
 
         if cost is not None:
@@ -400,12 +463,19 @@ class SNAGEvaluator:
             # Fallback: estimate from entity/dialog counts
             entity_score = min(evidence["entities_created"] / 4.0, 1.0)
             dialog_score = min(evidence["dialog_count"] / 10.0, 1.0)
-            score = 0.6 * dialog_score + 0.4 * entity_score if evidence["dialog_count"] > 0 else 0.7
+            score = (
+                0.6 * dialog_score + 0.4 * entity_score
+                if evidence["dialog_count"] > 0
+                else 0.7
+            )
 
         return min(score, 1.0), evidence
 
     def _run_axis2(
-        self, model: str, pro_model: str = None, out_file: Path = None,
+        self,
+        model: str,
+        pro_model: str = None,
+        out_file: Path = None,
     ) -> List[TDFRecord]:
         """Run Pro template for TCS score.
 
@@ -417,16 +487,23 @@ class SNAGEvaluator:
             return self._run_axis2_cloud(model, out_file=out_file)
 
         results = []
-        pro_path = Path(os.environ.get(
-            "PRO_REPO_PATH", "~/Documents/GitHub/timepoint-pro",
-        )).expanduser()
+        pro_path = Path(
+            os.environ.get(
+                "PRO_REPO_PATH",
+                "~/Documents/GitHub/timepoint-pro",
+            )
+        ).expanduser()
 
         if not pro_path.is_dir():
-            console.print(f"[yellow]timepoint-pro not found at {pro_path} and no PRO_URL configured — skipping Axis 2[/]")
+            console.print(
+                f"[yellow]timepoint-pro not found at {pro_path} and no PRO_URL configured — skipping Axis 2[/]"
+            )
             return results
 
         template = "mars_mission_portal"
-        console.print(f"[cyan]Axis 2 (TCS): Running Pro {template} (adaptive timeout)...[/]")
+        console.print(
+            f"[cyan]Axis 2 (TCS): Running Pro {template} (adaptive timeout)...[/]"
+        )
 
         try:
             pro_env = {**os.environ}
@@ -443,8 +520,11 @@ class SNAGEvaluator:
                 pro_cmd.extend(["--model", pro_model])
 
             run_result = self._run_pro_adaptive(
-                pro_cmd, cwd=pro_path, env=pro_env,
-                stale_timeout=300, max_timeout=60000,
+                pro_cmd,
+                cwd=pro_path,
+                env=pro_env,
+                stale_timeout=300,
+                max_timeout=60000,
             )
 
             tcs, tcs_evidence = self._parse_tcs(run_result.stdout)
@@ -454,7 +534,9 @@ class SNAGEvaluator:
             )
 
             if run_result.returncode != 0:
-                console.print(f"[yellow]Pro exited with code {run_result.returncode}[/]")
+                console.print(
+                    f"[yellow]Pro exited with code {run_result.returncode}[/]"
+                )
 
             if has_quality_data:
                 tcs_evidence["exit_code"] = run_result.returncode
@@ -471,7 +553,7 @@ class SNAGEvaluator:
                         f.write(result.model_dump_json() + "\n")
                 console.print(f"[green]Axis 2 TCS: {tcs:.3f}[/]")
             else:
-                console.print(f"[red]Pro failed with no usable quality data[/]")
+                console.print("[red]Pro failed with no usable quality data[/]")
         except Exception as e:
             console.print(f"[red]Pro failed: {e}[/]")
 
@@ -481,7 +563,7 @@ class SNAGEvaluator:
 
     def _run_axis3(self, model: str, out_file: Path = None) -> List[TDFRecord]:
         """Return stubbed WMNED score."""
-        console.print(f"[cyan]Axis 3 (WMNED): Returning stub scores...[/]")
+        console.print("[cyan]Axis 3 (WMNED): Returning stub scores...[/]")
         score, evidence = evaluate_predictive_stub()
         result = eval_record(
             model=model,
@@ -500,7 +582,7 @@ class SNAGEvaluator:
 
     def _run_axis5(self, model: str, out_file: Path = None) -> List[TDFRecord]:
         """Return stubbed GCQ score."""
-        console.print(f"[cyan]Axis 5 (GCQ): Returning stub scores...[/]")
+        console.print("[cyan]Axis 5 (GCQ): Returning stub scores...[/]")
         score, evidence = evaluate_coverage_stub()
         result = eval_record(
             model=model,
@@ -518,7 +600,10 @@ class SNAGEvaluator:
     # ── Axis 4: HTP (per-task) ───────────────────────────────────────
 
     def _run_axis4_tasks(
-        self, model: str, tasks: List[dict], axis1_results: List[TDFRecord],
+        self,
+        model: str,
+        tasks: List[dict],
+        axis1_results: List[TDFRecord],
         out_file: Path = None,
     ) -> List[TDFRecord]:
         """Run LLM-as-human rating for each task that has Axis 1 data."""
@@ -535,7 +620,7 @@ class SNAGEvaluator:
                         break
 
         if not api_key:
-            console.print(f"[yellow]No OPENROUTER_API_KEY — skipping Axis 4[/]")
+            console.print("[yellow]No OPENROUTER_API_KEY — skipping Axis 4[/]")
             return results
 
         # Build lookup of Axis 1 flash_data by task_id
@@ -546,7 +631,9 @@ class SNAGEvaluator:
             if r_task_id and r_evidence.get("flash_data"):
                 flash_data_by_task[r_task_id] = r_evidence["flash_data"]
 
-        console.print(f"[cyan]Axis 4 (HTP): Rating {len(tasks)} tasks with 5 LLM raters (penalty scoring)...[/]")
+        console.print(
+            f"[cyan]Axis 4 (HTP): Rating {len(tasks)} tasks with 5 LLM raters (penalty scoring)...[/]"
+        )
 
         for i, task in enumerate(tasks, 1):
             task_id = task["id"]
@@ -556,7 +643,9 @@ class SNAGEvaluator:
 
             try:
                 htp, evidence = evaluate_htp(
-                    query=query, flash_data=flash_data, api_key=api_key,
+                    query=query,
+                    flash_data=flash_data,
+                    api_key=api_key,
                 )
 
                 if htp > 0 or evidence.get("n_raters", 0) > 0:
@@ -573,9 +662,13 @@ class SNAGEvaluator:
                     if out_file:
                         with out_file.open("a") as f:
                             f.write(result.model_dump_json() + "\n")
-                    console.print(f"  [{'green' if htp >= 0.6 else 'yellow'}][{i}/{len(tasks)}] {task_id} (T{tier}): HTP {htp:.3f}[/]")
+                    console.print(
+                        f"  [{'green' if htp >= 0.6 else 'yellow'}][{i}/{len(tasks)}] {task_id} (T{tier}): HTP {htp:.3f}[/]"
+                    )
                 else:
-                    console.print(f"  [red][{i}/{len(tasks)}] {task_id}: no valid ratings[/]")
+                    console.print(
+                        f"  [red][{i}/{len(tasks)}] {task_id}: no valid ratings[/]"
+                    )
 
             except Exception as e:
                 console.print(f"  [red][{i}/{len(tasks)}] {task_id}: failed — {e}[/]")
@@ -604,28 +697,38 @@ class SNAGEvaluator:
             tier_counts[t["tier"]] = tier_counts.get(t["tier"], 0) + 1
         tier_str = ", ".join(f"T{k}:{v}" for k, v in sorted(tier_counts.items()))
 
-        console.print(f"[bold green]SNAG Bench v1.1 — {len(tasks)} tasks ({tier_str}), {len(models)} model(s)[/]")
+        console.print(
+            f"[bold green]SNAG Bench v1.1 — {len(tasks)} tasks ({tier_str}), {len(models)} model(s)[/]"
+        )
         console.print()
 
         all_results = []
 
         for model in models:
-            console.print(f"[bold cyan]{'='*60}[/]")
+            console.print(f"[bold cyan]{'=' * 60}[/]")
             console.print(f"[bold cyan]Model: {model}[/]")
-            console.print(f"[bold cyan]{'='*60}[/]")
+            console.print(f"[bold cyan]{'=' * 60}[/]")
 
-            out_file = self.results_dir / f"bench_{model.replace('/', '_')}_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.jsonl"
+            out_file = (
+                self.results_dir
+                / f"bench_{model.replace('/', '_')}_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.jsonl"
+            )
 
             # Axis 1: Flash grounding (per-task)
             a1_results = self._run_axis1_tasks(
-                model, tasks, preset=preset, text_model=text_model,
+                model,
+                tasks,
+                preset=preset,
+                text_model=text_model,
                 out_file=out_file,
             )
             all_results.extend(a1_results)
 
             # Axis 2: Pro coherence (per-model)
             if not skip_axis2:
-                a2_results = self._run_axis2(model, pro_model=pro_model, out_file=out_file)
+                a2_results = self._run_axis2(
+                    model, pro_model=pro_model, out_file=out_file
+                )
                 all_results.extend(a2_results)
 
             # Axis 3: Predictive stub
@@ -634,7 +737,10 @@ class SNAGEvaluator:
 
             # Axis 4: HTP (per-task, uses Axis 1 scene data)
             a4_results = self._run_axis4_tasks(
-                model, tasks, a1_results, out_file=out_file,
+                model,
+                tasks,
+                a1_results,
+                out_file=out_file,
             )
             all_results.extend(a4_results)
 
@@ -643,16 +749,28 @@ class SNAGEvaluator:
             all_results.extend(a5_results)
 
             # Print per-model summary
-            self._print_model_summary(model, a1_results, a2_results if not skip_axis2 else [], a3_results, a4_results, a5_results)
+            self._print_model_summary(
+                model,
+                a1_results,
+                a2_results if not skip_axis2 else [],
+                a3_results,
+                a4_results,
+                a5_results,
+            )
             console.print()
 
-        console.print(f"[bold green]Benchmark complete — {len(all_results)} total results[/]")
+        console.print(
+            f"[bold green]Benchmark complete — {len(all_results)} total results[/]"
+        )
         return all_results
 
     def _print_model_summary(
-        self, model: str,
-        a1: List[TDFRecord], a2: List[TDFRecord],
-        a3: List[TDFRecord], a4: List[TDFRecord],
+        self,
+        model: str,
+        a1: List[TDFRecord],
+        a2: List[TDFRecord],
+        a3: List[TDFRecord],
+        a4: List[TDFRecord],
         a5: List[TDFRecord] = None,
     ):
         """Print difficulty-weighted summary for one model."""
@@ -691,6 +809,7 @@ class SNAGEvaluator:
 
         # Composite
         from .calibration import composite_score as calc_composite
+
         axis_scores = {}
         if gsr_weighted is not None:
             axis_scores["grounding"] = gsr_weighted
@@ -709,12 +828,21 @@ class SNAGEvaluator:
 
     # ── Legacy evaluate_full_stack (backward compat) ─────────────────
 
-    def evaluate_full_stack(self, model: str = "gemini-2.0-flash", preset: str = "balanced", dry_run: bool = False, text_model: str = None, pro_model: str = None):
+    def evaluate_full_stack(
+        self,
+        model: str = "gemini-2.0-flash",
+        preset: str = "balanced",
+        dry_run: bool = False,
+        text_model: str = None,
+        pro_model: str = None,
+    ):
         """Legacy single-model eval. Use run_benchmark() for full v1.0 runs."""
         if dry_run:
             console.print("[yellow]DRY RUN — would run all 4 axes[/]")
             return []
         return self.run_benchmark(
-            models=[model], preset=preset,
-            text_model=text_model, pro_model=pro_model,
+            models=[model],
+            preset=preset,
+            text_model=text_model,
+            pro_model=pro_model,
         )

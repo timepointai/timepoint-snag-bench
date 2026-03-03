@@ -48,7 +48,8 @@ def _is_internal(model: str, result: TDFRecord) -> bool:
 
 
 def best_scores_by_model(
-    results: List[TDFRecord], external_only: bool = True,
+    results: List[TDFRecord],
+    external_only: bool = True,
 ) -> Dict[str, Dict[Axis, float]]:
     """Group by model, compute difficulty-weighted score per axis.
 
@@ -56,7 +57,9 @@ def best_scores_by_model(
     For per-model axes (TCS, WMNED), takes max score.
     """
     # Group results by model and axis
-    grouped: Dict[str, Dict[Axis, List[TDFRecord]]] = defaultdict(lambda: defaultdict(list))
+    grouped: Dict[str, Dict[Axis, List[TDFRecord]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     for r in results:
         r_model = r.payload["model"]
         r_axis = Axis(r.payload["axis"])
@@ -73,7 +76,9 @@ def best_scores_by_model(
 
             if has_tiers and len(axis_results) > 1:
                 # Difficulty-weighted scoring for per-task axes
-                pairs = [(r.payload["score"], r.payload.get("tier", 1)) for r in axis_results]
+                pairs = [
+                    (r.payload["score"], r.payload.get("tier", 1)) for r in axis_results
+                ]
                 model_scores[axis] = difficulty_weighted_score(pairs)
             else:
                 # Max score for per-model axes
@@ -98,7 +103,10 @@ def compute_composite(axis_scores: Dict[Axis, float]) -> Optional[float]:
     total_weight = sum(AXIS_WEIGHTS.get(weight_map[a], 0) for a in axis_scores)
     if total_weight == 0:
         return None
-    return sum(AXIS_WEIGHTS.get(weight_map[a], 0) * s for a, s in axis_scores.items()) / total_weight
+    return (
+        sum(AXIS_WEIGHTS.get(weight_map[a], 0) * s for a, s in axis_scores.items())
+        / total_weight
+    )
 
 
 def render_markdown_table(
@@ -130,22 +138,32 @@ def render_markdown_table(
     lines = []
     lines.append("# SNAG Bench Leaderboard v1.1")
     lines.append("")
-    lines.append("Composite: 25% GSR + 30% TCS + 25% WMNED + 20% HTP (renormalized over available axes)")
+    lines.append(
+        "Composite: 25% GSR + 30% TCS + 25% WMNED + 20% HTP (renormalized over available axes)"
+    )
     lines.append("")
-    lines.append("Axes 1 (GSR) and 4 (HTP) use difficulty-weighted scoring across 60 tasks (Tier 3 = 2.5x weight).")
+    lines.append(
+        "Axes 1 (GSR) and 4 (HTP) use difficulty-weighted scoring across 60 tasks (Tier 3 = 2.5x weight)."
+    )
     lines.append("")
-    lines.append("Axis 3 (WMNED) is currently stubbed — scores are placeholders until Proteus goes live.")
+    lines.append(
+        "Axis 3 (WMNED) is currently stubbed — scores are placeholders until Proteus goes live."
+    )
     lines.append("")
     lines.append("| " + " | ".join(headers) + " |")
     lines.append("| " + " | ".join("---" for _ in headers) + " |")
     for row in rows:
         lines.append("| " + " | ".join(row) + " |")
     lines.append("")
-    lines.append(f"*{total_results} result(s) across {len(scores)} model(s) — external models only*")
+    lines.append(
+        f"*{total_results} result(s) across {len(scores)} model(s) — external models only*"
+    )
     lines.append("")
     lines.append(f"*Generated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}*")
     lines.append("")
-    lines.append("See [methodology.md](../methodology.md) for scoring details and calibration targets.")
+    lines.append(
+        "See [methodology.md](../methodology.md) for scoring details and calibration targets."
+    )
     return "\n".join(lines)
 
 
@@ -218,7 +236,9 @@ def generate_leaderboard(
     if json_path:
         json_out = Path(json_path)
         json_out.parent.mkdir(parents=True, exist_ok=True)
-        json_out.write_text(json.dumps(render_json(scores, composites), indent=2) + "\n")
+        json_out.write_text(
+            json.dumps(render_json(scores, composites), indent=2) + "\n"
+        )
         console.print(f"[green]JSON leaderboard written to {json_out}[/]")
 
     if not output_path and not json_path:

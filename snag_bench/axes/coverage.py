@@ -31,10 +31,7 @@ def evaluate_coverage_stub() -> tuple[float, Dict[str, Any]]:
     Returns (score, evidence) where score is a weighted composite
     of the GCQ sub-metrics.
     """
-    score = sum(
-        STUB_METRICS[k] * SUB_WEIGHTS[k]
-        for k in STUB_METRICS
-    )
+    score = sum(STUB_METRICS[k] * SUB_WEIGHTS[k] for k in STUB_METRICS)
 
     evidence = {
         "stub": True,

@@ -23,11 +23,11 @@ Target calibration (frontier models):
 """
 
 import json
-import importlib.resources
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 TIER_WEIGHTS = {1: 1.0, 2: 1.5, 3: 2.5}
+
 
 def _default_tasks_dir() -> Path:
     """Resolve tasks directory: check CWD first, then package data."""
@@ -39,6 +39,7 @@ def _default_tasks_dir() -> Path:
     if pkg_root.is_dir():
         return pkg_root
     return cwd_tasks
+
 
 AXIS_WEIGHTS = {
     "grounding": 0.22,
@@ -64,7 +65,9 @@ def load_tasks(tasks_dir: str = None) -> List[dict]:
     return all_tasks
 
 
-def load_tasks_by_tier(tasks_dir: str = "tasks", tiers: Optional[List[int]] = None) -> List[dict]:
+def load_tasks_by_tier(
+    tasks_dir: str = "tasks", tiers: Optional[List[int]] = None
+) -> List[dict]:
     """Load tasks filtered by tier."""
     tasks = load_tasks(tasks_dir)
     if tiers:
@@ -81,7 +84,9 @@ def difficulty_weighted_score(task_scores: List[Tuple[float, int]]) -> float:
     if not task_scores:
         return 0.0
     total_weight = sum(TIER_WEIGHTS.get(tier, 1.0) for _, tier in task_scores)
-    weighted_sum = sum(score * TIER_WEIGHTS.get(tier, 1.0) for score, tier in task_scores)
+    weighted_sum = sum(
+        score * TIER_WEIGHTS.get(tier, 1.0) for score, tier in task_scores
+    )
     return weighted_sum / total_weight if total_weight > 0 else 0.0
 
 
@@ -96,8 +101,11 @@ def composite_score(axis_scores: Dict[str, float]) -> Optional[float]:
     available_weight = sum(AXIS_WEIGHTS[a] for a in axis_scores if a in AXIS_WEIGHTS)
     if available_weight == 0:
         return None
-    return sum(
-        AXIS_WEIGHTS.get(a, 0) * s
-        for a, s in axis_scores.items()
-        if a in AXIS_WEIGHTS
-    ) / available_weight
+    return (
+        sum(
+            AXIS_WEIGHTS.get(a, 0) * s
+            for a, s in axis_scores.items()
+            if a in AXIS_WEIGHTS
+        )
+        / available_weight
+    )

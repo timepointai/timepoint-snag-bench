@@ -17,14 +17,14 @@ dependencies = [
     "web3>=6.0",
     "rich>=13.0",
     "python-dotenv>=1.0",
-    "timepoint-tdf @ git+https://github.com/timepoint-ai/timepoint-tdf.git",
+    "timepoint-tdf @ git+https://github.com/timepointai/timepoint-tdf.git",
 ]
 
 [project.optional-dependencies]
 full = [
-    "timepoint-flash @ git+https://github.com/timepoint-ai/timepoint-flash.git",
-    "timepoint-pro @ git+https://github.com/timepoint-ai/timepoint-pro.git",
-    "timepoint-proteus @ git+https://github.com/timepoint-ai/proteus.git"
+    "timepoint-flash @ git+https://github.com/timepointai/timepoint-flash.git",
+    "timepoint-pro @ git+https://github.com/timepointai/timepoint-pro.git",
+    "timepoint-proteus @ git+https://github.com/timepointai/proteus.git"
 ]
 
 [project.scripts]

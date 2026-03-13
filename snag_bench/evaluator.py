@@ -19,7 +19,7 @@ from .axes.coverage import evaluate_coverage_stub
 
 console = Console()
 
-# Configurable service URLs (defaults to local dev, overridden by Railway runner)
+# Configurable service URLs (defaults to local dev)
 FLASH_URL = os.environ.get("FLASH_URL", "http://localhost:8000")
 FLASH_SERVICE_KEY = os.environ.get("FLASH_SERVICE_KEY", "")
 PRO_URL = os.environ.get("PRO_URL", "")

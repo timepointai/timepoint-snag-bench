@@ -26,8 +26,8 @@ Runs the `mars_mission_portal` template through Pro's adaptive timeout runner. M
 
 ### Deployment
 
-- **Open source**: `timepoint-ai/timepoint-pro` (CLI, local execution)
-- **Cloud**: `timepoint-ai/timepoint-pro-cloud-private` (FastAPI + Celery + Redis + Postgres on Railway)
+- **Open source**: `timepointai/timepoint-pro` (CLI, local execution)
+- **Cloud**: Available as a hosted API service
 
 ---
 
@@ -47,18 +47,9 @@ For each of 60 tasks, Flash generates a temporal scene. The grounding confidence
 
 Flash scenes are the artifacts that LLM-as-human raters evaluate. Each scene's narrative, dialog, and temporal claims are scored on 4 dimensions by 3 personas.
 
-### Authentication
-
-Flash supports three auth paths:
-1. **Service key** (`X-Service-Key` header) — for inter-service calls (timing-safe HMAC comparison)
-2. **Bearer JWT** (`Authorization: Bearer`) — for user/app auth (15-min expiry, HS256)
-3. **Open access** (`AUTH_ENABLED=false`) — development mode
-
 ### Deployment
 
-- **Open source**: `timepoint-ai/timepoint-flash` (engine code)
-- **Deploy**: `timepoint-ai/timepoint-flash-deploy` (Railway config, migrations, auth)
-- **Private deploy**: `timepoint-flash-deploy-private-feb-2026` (security-hardened fork)
+- **Open source**: `timepointai/timepoint-flash` (engine code)
 
 ---
 
@@ -78,34 +69,6 @@ The stub uses 10 fake resolved markets with realistic error distributions (raw W
 - Phase 0.5 (Worked Examples): COMPLETE
 - Phase 1 (Validate Demand): NOT STARTED
 - Not deployed to mainnet, no external audit
-
----
-
-## Service Integration Map
-
-```
-SNAG Bench (this repo)
-│
-├── Axis 1: GSR ──→ Flash API /generate/sync
-│                    (via FLASH_URL, default localhost:8000)
-│
-├── Axis 2: TCS ──→ Pro subprocess (mars_mission_portal)
-│                    (via PRO_REPO_PATH, adaptive timeout)
-│
-├── Axis 3: WMNED → Stub (future: Proteus on-chain markets)
-│
-└── Axis 4: HTP ──→ OpenRouter API (LLM-as-human judging)
-                     (via OPENROUTER_API_KEY)
-
-Hosted Runner (snag-bench-runner, Railway)
-│
-├── Flash ──→ https://timepoint-flash-deploy-production.up.railway.app
-│              (or railway.internal with FLASH_SERVICE_KEY)
-│
-├── Results → Postgres (Railway plugin)
-│
-└── API ────→ Bearer token auth (RUNNER_API_KEY)
-```
 
 ---
 

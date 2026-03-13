@@ -29,8 +29,8 @@ Major upgrade: 60-task benchmark with difficulty-weighted scoring and 4 axes.
 
 ### Architecture
 
-- **Public repo** (`timepoint-ai/timepoint-snag-bench`) — benchmark spec, tasks, scoring, CLI
-- **Private runner** (`timepoint-ai/snag-bench-runner`) — Railway deployment, REST API, Postgres, bearer auth
+- **Public repo** (`timepointai/timepoint-snag-bench`) — benchmark spec, tasks, scoring, CLI
+- **Private runner** — hosted deployment with REST API and persistent storage
 
 ## v0.1.0 — 2026-02-18
 

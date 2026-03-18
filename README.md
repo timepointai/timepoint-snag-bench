@@ -203,26 +203,23 @@ See [results/LEADERBOARD.md](results/LEADERBOARD.md) for current standings. Exte
 
 ## Timepoint Suite
 
-Open-source engines for temporal AI. Render the past. Simulate the future. Score the predictions.
+Render the past. Simulate the future. Score the predictions. Accumulate the graph.
 
-```
-  Flash ─── scene generation, grounding ──────────┐
-  Pro ───── SNAG simulation, temporal coherence ───┤
-  Proteus ─ prediction markets, settlement ────────┼── SNAG Bench
-  Clockchain ─ causal graph accumulation ──────────┤    (scores it all)
-  TDF ───── data interchange format ───────────────┘
-```
-
-| Engine | Role |
-|--------|------|
-| [Flash](https://github.com/timepoint-ai/timepoint-flash) | Reality Writer — renders grounded historical moments |
-| [Pro](https://github.com/timepoint-ai/timepoint-pro) | Rendering Engine — SNAG-powered simulation, TDF output |
-| [Clockchain](https://github.com/timepoint-ai/timepoint-clockchain) | Temporal Causal Graph — Rendered Past + Rendered Future |
-| **SNAG Bench** | **Quality Certifier — measures Causal Resolution** |
-| [Proteus](https://github.com/timepoint-ai/proteus) | Settlement Layer — prediction markets for Rendered Futures |
-| [TDF](https://github.com/timepoint-ai/timepoint-tdf) | Data Format — JSON-LD interchange across services |
-
-**The Timepoint Thesis** — a forthcoming paper formalizing Rendered Past / Rendered Future, the mathematics of Causal Resolution, and the Proof of Causal Convergence protocol. Follow [@seanmcdonaldxyz](https://x.com/seanmcdonaldxyz) for updates.
+| Service | Type | Repo | Role |
+|---------|------|------|------|
+| **Flash** | Open Source | timepoint-flash | Reality Writer — renders grounded historical moments |
+| **Clockchain** | Open Source | timepoint-clockchain | Temporal Causal Graph — Rendered Past + Rendered Future, growing 24/7 |
+| **Pro** | Open Source | timepoint-pro | SNAG Simulation Engine — temporal simulation, TDF output, training data |
+| **Proteus** | Open Source | proteus | Settlement Layer — prediction markets for Rendered Futures |
+| **TDF** | Open Source | timepoint-tdf | Data Format — JSON-LD interchange across all services |
+| **SNAG Bench** | **Open Source** | **timepoint-snag-bench** | **Quality Certifier — measures Causal Resolution across renderings** |
+| **Billing** | Private | timepoint-billing | Payment Processing — Apple IAP + Stripe |
+| **MCP** | Private | timepoint-mcp | MCP Server — AI agent access to Flash and Clockchain |
+| **Web App** | Private | timepoint-web-app | Browser client at app.timepointai.com |
+| **Landing** | Private | timepoint-landing | Marketing site at timepointai.com |
+| **iPhone App** | Private | timepoint-iphone-app | iOS client — Synthetic Time Travel on mobile |
+| **API Gateway** | Private | timepoint-api-gateway | Reverse proxy at api.timepointai.com |
+| **Skip Meetings** | Private | skipmeetingsai | Meeting intelligence SaaS powered by Flash |
 
 ## License
 

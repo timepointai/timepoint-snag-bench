@@ -27,7 +27,7 @@ Runs the `mars_mission_portal` template through Pro's adaptive timeout runner. M
 ### Deployment
 
 - **Open source**: `timepoint-ai/timepoint-pro` (CLI, local execution)
-- **Cloud**: `timepoint-ai/timepoint-pro-cloud-private` (FastAPI + Celery + Redis + Postgres on Railway)
+- **Cloud**: the private Pro Cloud deployment repo (FastAPI + Celery + Redis + Postgres on Railway)
 
 ---
 
@@ -58,7 +58,7 @@ Flash supports three auth paths:
 
 - **Open source**: `timepoint-ai/timepoint-flash` (engine code)
 - **Deploy**: `timepoint-ai/timepoint-flash-deploy` (Railway config, migrations, auth)
-- **Private deploy**: `timepoint-flash-deploy-private-feb-2026` (security-hardened fork)
+- **Private deploy**: the private Flash deployment repo (security-hardened fork)
 
 ---
 
@@ -100,7 +100,7 @@ SNAG Bench (this repo)
 Hosted Runner (snag-bench-runner, Railway)
 │
 ├── Flash ──→ https://flash.timepointai.com
-│              (or railway.internal with FLASH_SERVICE_KEY)
+│              (or [internal service URL] with FLASH_SERVICE_KEY)
 │
 ├── Results → Postgres (Railway plugin)
 │

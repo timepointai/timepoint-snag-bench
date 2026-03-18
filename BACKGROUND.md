@@ -99,7 +99,7 @@ SNAG Bench (this repo)
 
 Hosted Runner (snag-bench-runner, Railway)
 │
-├── Flash ──→ https://timepoint-flash-deploy-production.up.railway.app
+├── Flash ──→ https://flash.timepointai.com
 │              (or railway.internal with FLASH_SERVICE_KEY)
 │
 ├── Results → Postgres (Railway plugin)

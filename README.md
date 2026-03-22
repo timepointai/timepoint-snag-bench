@@ -6,7 +6,7 @@ Most benchmarks test what models know. SNAG Bench tests whether they understand 
 
 > **Why this exists:** Frontier models score ~1.0 on well-documented temporal queries. That tells us nothing. SNAG Bench's adversarial Tier 3 — sparse records, conflicting sources, embedded errors, temporal impossibilities — drops even the best models to 0.55–0.75. That spread is where evaluation becomes useful.
 
-Part of the [Timepoint AI](https://github.com/timepoint-ai) open-source stack.
+Part of the [Timepoint AI](https://github.com/timepointai) open-source stack.
 
 ---
 
@@ -26,7 +26,7 @@ Five axes, each measuring a different temporal capability. Scores are weighted a
 | # | Axis | What it measures | Source | Status |
 |---|------|-----------------|--------|--------|
 | 1 | **GSR** | Do temporal claims survive fact-checking? | Flash API grounding | Active |
-| 2 | **TCS** | Can the model maintain coherent timelines in simulation? | Pro/Daedalus engine | Active |
+| 2 | **TCS** | Can the model maintain coherent timelines in simulation? | Pro engine | Active |
 | 3 | **WMNED** | Do temporal forecasts match actual outcomes? | Proteus prediction markets | Stubbed |
 | 4 | **HTP** | Would 5 domain experts find the scene plausible? | LLM-as-human panel | Active |
 | 5 | **GCQ** | How complete and consistent is the causal graph? | Path/anchor analysis | Stubbed |
@@ -83,7 +83,7 @@ Adversarial tasks exploit specific failure modes:
 ## Quick Start
 
 ```bash
-git clone https://github.com/timepoint-ai/timepoint-snag-bench.git
+git clone https://github.com/timepointai/timepoint-snag-bench.git
 cd timepoint-snag-bench
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .

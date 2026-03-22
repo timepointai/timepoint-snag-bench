@@ -9,7 +9,7 @@ SNAG Bench evaluates temporal reasoning capability across 4 axes using 60 fixed 
 | Axis | Abbrev | Weight | Source |
 |------|--------|--------|--------|
 | Grounding Survival Rate | GSR | 25% | Flash API grounding confidence |
-| Temporal Coherence Score | TCS | 30% | Pro/Daedalus dialog quality + mechanism coverage |
+| Temporal Coherence Score | TCS | 30% | Pro dialog quality + mechanism coverage |
 | Weighted Mean Normalized Error Distance | WMNED | 25% | Predictive markets (currently stubbed) |
 | Human Temporal Plausibility | HTP | 20% | LLM-as-human roleplayer panel |
 
@@ -23,7 +23,7 @@ For each of 60 task queries, the model generates a temporal scene through the Fl
 
 ### Axis 2 — TCS (Temporal Coherence Score)
 
-The model runs a flagship simulation template (`mars_mission_portal`) through the Pro/Daedalus engine. TCS measures:
+The model runs a flagship simulation template (`mars_mission_portal`) through the Pro engine. TCS measures:
 
 - Dialog quality (50%): How natural and contextually appropriate is the generated dialog?
 - Voice distinctiveness (30%): Can the model maintain distinct character voices?

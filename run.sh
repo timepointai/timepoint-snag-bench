@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FLASH_DIR="$SCRIPT_DIR/../timepoint-flash"
-DAEDALUS_DIR="$SCRIPT_DIR/../timepoint-pro"
+PRO_DIR="$SCRIPT_DIR/../timepoint-pro"
 FLASH_PORT=8000
 FLASH_PID=""
 
@@ -96,18 +96,18 @@ check_env() {
         echo -e "  flash .env     ${RED}missing${NC}  $FLASH_DIR/.env"
     fi
 
-    # 4. Daedalus repo
-    if [ -d "$DAEDALUS_DIR" ]; then
-        echo -e "  timepoint-pro ${GREEN}found${NC}  $DAEDALUS_DIR"
+    # 4. Pro repo
+    if [ -d "$PRO_DIR" ]; then
+        echo -e "  timepoint-pro ${GREEN}found${NC}  $PRO_DIR"
     else
         echo -e "  timepoint-pro ${YELLOW}missing${NC}  (Axis 2 will be skipped)"
     fi
 
-    # 5. Daedalus .env
-    if [ -f "$DAEDALUS_DIR/.env" ]; then
-        echo -e "  daedalus .env  ${GREEN}found${NC}  $DAEDALUS_DIR/.env"
+    # 5. Pro .env
+    if [ -f "$PRO_DIR/.env" ]; then
+        echo -e "  pro .env  ${GREEN}found${NC}  $PRO_DIR/.env"
     else
-        echo -e "  daedalus .env  ${YELLOW}missing${NC}"
+        echo -e "  pro .env  ${YELLOW}missing${NC}"
     fi
 
     # 6. Flash server already running?
@@ -144,9 +144,9 @@ load_flash_env() {
         set +a
     fi
 
-    # Also load Daedalus .env if it exists (for OPENROUTER_API_KEY etc.)
-    if [ -f "$DAEDALUS_DIR/.env" ]; then
-        echo -e "${CYAN}Loading credentials from $DAEDALUS_DIR/.env${NC}"
+    # Also load Pro .env if it exists (for OPENROUTER_API_KEY etc.)
+    if [ -f "$PRO_DIR/.env" ]; then
+        echo -e "${CYAN}Loading credentials from $PRO_DIR/.env${NC}"
         set -a
         while IFS='=' read -r key value; do
             [[ "$key" =~ ^#.*$ ]] && continue
@@ -158,7 +158,7 @@ load_flash_env() {
             if [ -z "${!key}" ] && [ -n "$value" ]; then
                 export "$key=$value"
             fi
-        done < "$DAEDALUS_DIR/.env"
+        done < "$PRO_DIR/.env"
         set +a
     fi
 }

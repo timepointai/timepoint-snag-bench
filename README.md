@@ -207,18 +207,18 @@ Render the past. Simulate the future. Score the predictions. Accumulate the grap
 
 | Service | Type | Repo | Role |
 |---------|------|------|------|
-| **Flash** | Open Source | timepoint-flash | Reality Writer — renders grounded historical moments |
-| **Clockchain** | Open Source | timepoint-clockchain | Temporal Causal Graph — Rendered Past + Rendered Future, growing 24/7 |
+| **API Gateway** | Private | timepoint-api-gateway | Auth authority — JWT, OAuth (Apple/Google/GitHub), credits, rate limiting, request routing at api.timepointai.com |
+| **Flash** | Open Source | timepoint-flash | Reality Writer — pure generation engine (no auth), renders grounded historical moments |
+| **Clockchain** | Open Source | timepoint-clockchain | Temporal Causal Graph — 1,900+ nodes, 5M+ edges, MCP endpoint, growing 24/7 |
 | **Pro** | Open Source | timepoint-pro | SNAG Simulation Engine — temporal simulation, TDF output, training data |
 | **Proteus** | Open Source | proteus | Settlement Layer — prediction markets for Rendered Futures |
 | **TDF** | Open Source | timepoint-tdf | Data Format — JSON-LD interchange across all services |
 | **SNAG Bench** | **Open Source** | **timepoint-snag-bench** | **Quality Certifier — measures Causal Resolution across renderings** |
 | **Billing** | Private | timepoint-billing | Payment Processing — Apple IAP + Stripe |
-| **MCP** | Private | timepoint-mcp | MCP Server — AI agent access to Flash and Clockchain |
+| **MCP** | Public | timepoint-mcp | MCP Server — AI agent access to Flash and Clockchain |
 | **Web App** | Private | timepoint-web-app | Browser client at app.timepointai.com |
 | **Landing** | Private | timepoint-landing | Marketing site at timepointai.com |
 | **iPhone App** | Private | timepoint-iphone-app | iOS client — Synthetic Time Travel on mobile |
-| **API Gateway** | Private | timepoint-api-gateway | Reverse proxy at api.timepointai.com |
 | **Skip Meetings** | Private | skipmeetingsai | Meeting intelligence SaaS powered by Flash |
 
 ## License

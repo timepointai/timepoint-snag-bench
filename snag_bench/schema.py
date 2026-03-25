@@ -32,7 +32,7 @@ def eval_record(
         "score": min(max(score, 0.0), 1.0),
         "axis": axis.value if isinstance(axis, Axis) else axis,
         "version": BENCH_VERSION,
-        "submitter": "realityinspector",
+        "submitter": "anonymous",
         "task_id": task_id,
         "tier": tier,
         "internal": internal,

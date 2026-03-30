@@ -197,7 +197,7 @@ timepoint-snag-bench/
 
 ## Leaderboard
 
-See [results/LEADERBOARD.md](results/LEADERBOARD.md) for current standings. External models only — Timepoint internal runs are excluded.
+The leaderboard is generated after running benchmarks via `snag-bench leaderboard --output results/LEADERBOARD.md`. No pre-populated results are included in the repo.
 
 ---
 
@@ -209,7 +209,7 @@ Render the past. Simulate the future. Score the predictions. Accumulate the grap
 |---------|------|------|------|
 | **API Gateway** | Private | timepoint-api-gateway | Auth authority — JWT, OAuth (Apple/Google/GitHub), credits, rate limiting, request routing at api.timepointai.com |
 | **Flash** | Open Source | timepoint-flash | Reality Writer — pure generation engine (no auth), renders grounded historical moments |
-| **Clockchain** | Open Source | timepoint-clockchain | Temporal Causal Graph — 1,900+ nodes, 5M+ edges, MCP endpoint, growing 24/7 |
+| **Clockchain** | Open Source | timepoint-clockchain | Temporal Causal Graph — 3,900+ nodes, 5M+ edges, MCP endpoint, growing 24/7 |
 | **Pro** | Open Source | timepoint-pro | SNAG Simulation Engine — temporal simulation, TDF output, training data |
 | **Proteus** | Open Source | proteus | Settlement Layer — prediction markets for Rendered Futures |
 | **TDF** | Open Source | timepoint-tdf | Data Format — JSON-LD interchange across all services |
